@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -67,6 +68,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
@@ -257,89 +259,102 @@ fun HomeView(context: ViewContext) {
                 }
             )
         },
+        // M3E: Removed standard bottomBar to create a floating overlay
         content = { contentPadding ->
-            AnimatedContent(
-                label = "home-content",
-                targetState = currentTab,
-                modifier = Modifier
-                    .padding(contentPadding)
-                    .fillMaxSize(),
-                transitionSpec = {
-                    SlideTransition.slideUp.enterTransition()
-                        .togetherWith(ScaleTransition.scaleDown.exitTransition())
-                },
-            ) { page ->
-                when (page) {
-                    HomePage.ForYou -> ForYouView(context)
-                    HomePage.Songs -> SongsView(context)
-                    HomePage.Albums -> AlbumsView(context)
-                    HomePage.Artists -> ArtistsView(context)
-                    HomePage.AlbumArtists -> AlbumArtistsView(context)
-                    HomePage.Genres -> GenresView(context)
-                    HomePage.Browser -> BrowserView(context)
-                    HomePage.Folders -> FoldersView(context)
-                    HomePage.Playlists -> PlaylistsView(context)
-                    HomePage.Tree -> TreeView(context)
-                }
-            }
-        },
-        bottomBar = {
-            Column {
-                NowPlayingBottomBar(context, false)
-                NavigationBar(
+            Box(modifier = Modifier.fillMaxSize()) {
+                // Main Content
+                AnimatedContent(
+                    label = "home-content",
+                    targetState = currentTab,
                     modifier = Modifier
-                        .pointerInput(Unit) {
-                            detectTapGestures {
-                                showTabsSheet = true
-                            }
-                        }
-                        .swipeable(onSwipeUp = {
-                            showTabsSheet = true
-                        })
-                ) {
-                    Spacer(modifier = Modifier.width(2.dp))
-                    tabs.map { x ->
-                        val isSelected = currentTab == x
-                        val label = x.label(context)
-
-                        NavigationBarItem(
-                            selected = isSelected,
-                            alwaysShowLabel = labelVisibility == HomePageBottomBarLabelVisibility.ALWAYS_VISIBLE,
-                            icon = {
-                                Crossfade(
-                                    label = "home-bottom-bar",
-                                    targetState = isSelected,
-                                ) {
-                                    Icon(
-                                        if (it) x.selectedIcon() else x.unselectedIcon(),
-                                        label,
-                                    )
-                                }
-                            },
-                            label = when (labelVisibility) {
-                                HomePageBottomBarLabelVisibility.INVISIBLE -> null
-                                else -> ({
-                                    Text(
-                                        label,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        textAlign = TextAlign.Center,
-                                        overflow = TextOverflow.Ellipsis,
-                                        softWrap = false,
-                                    )
-                                })
-                            },
-                            onClick = {
-                                when {
-                                    isSelected -> {
-                                        showTabsSheet = true
-                                    }
-
-                                    else -> context.symphony.settings.lastHomeTab.setValue(x)
-                                }
-                            }
-                        )
+                        .fillMaxSize()
+                        // Add extra bottom padding so content isn't hidden behind the floating bar
+                        .padding(top = contentPadding.calculateTopPadding(), bottom = 140.dp),
+                    transitionSpec = {
+                        SlideTransition.slideUp.enterTransition()
+                            .togetherWith(ScaleTransition.scaleDown.exitTransition())
+                    },
+                ) { page ->
+                    when (page) {
+                        HomePage.ForYou -> ForYouView(context)
+                        HomePage.Songs -> SongsView(context)
+                        HomePage.Albums -> AlbumsView(context)
+                        HomePage.Artists -> ArtistsView(context)
+                        HomePage.AlbumArtists -> AlbumArtistsView(context)
+                        HomePage.Genres -> GenresView(context)
+                        HomePage.Browser -> BrowserView(context)
+                        HomePage.Folders -> FoldersView(context)
+                        HomePage.Playlists -> PlaylistsView(context)
+                        HomePage.Tree -> TreeView(context)
                     }
-                    Spacer(modifier = Modifier.width(2.dp))
+                }
+
+                // M3E: Floating Liquid Glass Bottom Bar (Namida Style)
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(horizontal = 16.dp, vertical = 24.dp) // Floating effect
+                        .shadow(16.dp, RoundedCornerShape(32.dp)) // Deep shadow
+                        .clip(RoundedCornerShape(32.dp)) // Pill shape
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)) // Liquid Glass
+                ) {
+                    NowPlayingBottomBar(context, false)
+                    NavigationBar(
+                        containerColor = Color.Transparent, // Transparent to let the glass show
+                        modifier = Modifier
+                            .pointerInput(Unit) {
+                                detectTapGestures {
+                                    showTabsSheet = true
+                                }
+                            }
+                            .swipeable(onSwipeUp = {
+                                showTabsSheet = true
+                            })
+                    ) {
+                        Spacer(modifier = Modifier.width(2.dp))
+                        tabs.map { x ->
+                            val isSelected = currentTab == x
+                            val label = x.label(context)
+
+                            NavigationBarItem(
+                                selected = isSelected,
+                                alwaysShowLabel = labelVisibility == HomePageBottomBarLabelVisibility.ALWAYS_VISIBLE,
+                                icon = {
+                                    Crossfade(
+                                        label = "home-bottom-bar",
+                                        targetState = isSelected,
+                                    ) {
+                                        Icon(
+                                            if (it) x.selectedIcon() else x.unselectedIcon(),
+                                            label,
+                                        )
+                                    }
+                                },
+                                label = when (labelVisibility) {
+                                    HomePageBottomBarLabelVisibility.INVISIBLE -> null
+                                    else -> ({
+                                        Text(
+                                            label,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            textAlign = TextAlign.Center,
+                                            overflow = TextOverflow.Ellipsis,
+                                            softWrap = false,
+                                        )
+                                    })
+                                },
+                                onClick = {
+                                    when {
+                                        isSelected -> {
+                                            showTabsSheet = true
+                                        }
+
+                                        else -> context.symphony.settings.lastHomeTab.setValue(x)
+                                    }
+                                }
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(2.dp))
+                    }
                 }
             }
         }
