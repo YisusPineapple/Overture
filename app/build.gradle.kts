@@ -13,7 +13,7 @@ android {
 
     defaultConfig {
         applicationId = "io.github.zyrouge.symphony"
-        minSdk = 24 // Bajado a API 24 según tus directrices
+        minSdk = 24
         targetSdk = libs.versions.target.sdk.get().toInt()
 
         versionCode = 115
@@ -34,7 +34,6 @@ android {
                 keyAlias = System.getenv("SIGNING_KEY_ALIAS")
                 keyPassword = System.getenv("SIGNING_KEY_PASSWORD")
             } else {
-                // Fallback to debug keystore if CI secrets are missing
                 storeFile = signingConfigs.getByName("debug").storeFile
                 storePassword = signingConfigs.getByName("debug").storePassword
                 keyAlias = signingConfigs.getByName("debug").keyAlias
@@ -78,6 +77,7 @@ android {
     }
 
     compileOptions {
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -115,6 +115,7 @@ android {
 }
 
 dependencies {
+    coreLibraryDesugaring(libs.desugar)
     implementation(project(":metaphony"))
     implementation(libs.activity.compose)
     implementation(libs.coil)

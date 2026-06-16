@@ -21,13 +21,14 @@ kotlin-serialization-plugin = "2.1.0"
 ksp-plugin = "2.1.0-1.0.29"
 
 compile-sdk = "35"
-min-sdk = "24" 
+min-sdk = "24"
 target-sdk = "34"
 junit = "4.13.2"
 junit-version = "1.2.1"
 espresso-core = "3.6.1"
 appcompat = "1.7.0"
 material = "1.12.0"
+desugar = "2.1.3"
 
 [libraries]
 activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activity-compose" }
@@ -55,6 +56,7 @@ ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junit-
 espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espresso-core" }
 appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
+desugar = { group = "com.android.tools", name = "desugar_jdk_libs", version.ref = "desugar" }
 
 [plugins]
 android-app = { id = "com.android.application", version.ref = "android-gradle-plugin" }
