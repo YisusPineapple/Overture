@@ -72,10 +72,13 @@ fun ForYouView(context: ViewContext) {
     val albumsIsUpdating by context.symphony.groove.album.isUpdating.collectAsState()
     val artistsIsUpdating by context.symphony.groove.artist.isUpdating.collectAsState()
     val songsIsUpdating by context.symphony.groove.song.isUpdating.collectAsState()
+    
     val albumArtistNames by context.symphony.groove.albumArtist.all.collectAsState()
     val albumIds by context.symphony.groove.album.all.collectAsState()
     val artistNames by context.symphony.groove.artist.all.collectAsState()
     val songIds by context.symphony.groove.song.all.collectAsState()
+    val favoriteSongIds by context.symphony.groove.playlist.favorites.collectAsState()
+    
     val sortBy by context.symphony.settings.lastUsedSongsSortBy.flow.collectAsState()
     val sortReverse by context.symphony.settings.lastUsedSongsSortReverse.flow.collectAsState()
 
@@ -88,35 +91,97 @@ fun ForYouView(context: ViewContext) {
                     }
                 }
             }
+            
+            // Optimized sorting: prevent main-thread UI freeze under huge libraries
             val recentlyAddedSongs by remember(songsIsUpdating, songIds) {
                 derivedStateOf {
                     runIfOrDefault(!songsIsUpdating, listOf()) {
+                        val subset = songIds.subListNonStrict(200) // Sort only the top 200 items
                         context.symphony.groove.song.sort(
-                            songIds.toList(),
+                            subset,
                             SongRepository.SortBy.DATE_MODIFIED,
                             true
                         )
                     }
                 }
             }
-            val randomAlbums by remember(albumsIsUpdating, albumIds) {
+
+            // Overture Heuristic Recommendation Engine: Albums
+            val recommendedAlbums by remember(albumsIsUpdating, albumIds, favoriteSongIds) {
                 derivedStateOf {
-                    runIfOrDefault(!albumsIsUpdating, listOf()) {
-                        albumIds.randomSubList(6)
+                    if (albumsIsUpdating || albumIds.isEmpty()) return@derivedStateOf emptyList<String>()
+                    
+                    val favSongs = favoriteSongIds.mapNotNull { context.symphony.groove.song.get(it) }
+                    val favArtists = favSongs.flatMap { it.artists }.toSet()
+                    val favGenres = favSongs.flatMap { it.genres }.toSet()
+                    
+                    val scored = albumIds.map { id ->
+                        val album = context.symphony.groove.album.get(id)
+                        var score = 0
+                        if (album != null) {
+                            score += album.artists.count { favArtists.contains(it) } * 5
+                        }
+                        id to score
+                    }
+                    
+                    val topScored = scored.filter { it.second > 0 }.shuffled().sortedByDescending { it.second }.map { it.first }
+                    if (topScored.size >= 6) {
+                        topScored.subListNonStrict(6)
+                    } else {
+                        val remaining = albumIds.filter { !topScored.contains(it) }.randomSubList(6 - topScored.size)
+                        topScored + remaining
                     }
                 }
             }
-            val randomArtists by remember(artistsIsUpdating, artistNames) {
+
+            // Overture Heuristic Recommendation Engine: Artists
+            val recommendedArtists by remember(artistsIsUpdating, artistNames, favoriteSongIds) {
                 derivedStateOf {
-                    runIfOrDefault(!artistsIsUpdating, listOf()) {
-                        artistNames.randomSubList(6)
+                    if (artistsIsUpdating || artistNames.isEmpty()) return@derivedStateOf emptyList<String>()
+                    
+                    val favSongs = favoriteSongIds.mapNotNull { context.symphony.groove.song.get(it) }
+                    val favArtists = favSongs.flatMap { it.artists }.toSet()
+                    
+                    val scored = artistNames.map { name ->
+                        var score = 0
+                        if (favArtists.contains(name)) {
+                            score += 5
+                        }
+                        name to score
+                    }
+                    
+                    val topScored = scored.filter { it.second > 0 }.shuffled().sortedByDescending { it.second }.map { it.first }
+                    if (topScored.size >= 6) {
+                        topScored.subListNonStrict(6)
+                    } else {
+                        val remaining = artistNames.filter { !topScored.contains(it) }.randomSubList(6 - topScored.size)
+                        topScored + remaining
                     }
                 }
             }
-            val randomAlbumArtists by remember(albumArtistsIsUpdating, albumArtistNames) {
+
+            // Overture Heuristic Recommendation Engine: Album Artists
+            val recommendedAlbumArtists by remember(albumArtistsIsUpdating, albumArtistNames, favoriteSongIds) {
                 derivedStateOf {
-                    runIfOrDefault(!albumArtistsIsUpdating, listOf()) {
-                        albumArtistNames.randomSubList(6)
+                    if (albumArtistsIsUpdating || albumArtistNames.isEmpty()) return@derivedStateOf emptyList<String>()
+                    
+                    val favSongs = favoriteSongIds.mapNotNull { context.symphony.groove.song.get(it) }
+                    val favAlbumArtists = favSongs.flatMap { it.albumArtists }.toSet()
+                    
+                    val scored = albumArtistNames.map { name ->
+                        var score = 0
+                        if (favAlbumArtists.contains(name)) {
+                            score += 5
+                        }
+                        name to score
+                    }
+                    
+                    val topScored = scored.filter { it.second > 0 }.shuffled().sortedByDescending { it.second }.map { it.first }
+                    if (topScored.size >= 6) {
+                        topScored.subListNonStrict(6)
+                    } else {
+                        val remaining = albumArtistNames.filter { !topScored.contains(it) }.randomSubList(6 - topScored.size)
+                        topScored + remaining
                     }
                 }
             }
@@ -271,21 +336,21 @@ fun ForYouView(context: ViewContext) {
                         ForYou.Albums -> SuggestedAlbums(
                             context,
                             isLoading = albumsIsUpdating,
-                            albumIds = randomAlbums,
+                            albumIds = recommendedAlbums,
                         )
 
                         ForYou.Artists -> SuggestedArtists(
                             context,
                             label = context.symphony.t.SuggestedArtists,
                             isLoading = artistsIsUpdating,
-                            artistNames = randomArtists,
+                            artistNames = recommendedArtists,
                         )
 
                         ForYou.AlbumArtists -> SuggestedAlbumArtists(
                             context,
                             label = context.symphony.t.SuggestedAlbumArtists,
                             isLoading = albumArtistsIsUpdating,
-                            albumArtistNames = randomAlbumArtists,
+                            albumArtistNames = recommendedAlbumArtists,
                         )
                     }
                 }
