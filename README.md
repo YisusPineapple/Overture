@@ -3,63 +3,49 @@
 </p>
 
 <p align="center">
-    <a href="https://github.com/zyrouge"><img src="https://img.shields.io/badge/made%20by-zyrouge-d946ef"></a>
-    <a href="#links"><img src="https://img.shields.io/badge/❤️%20consider%20donating-ffffff"></a>
+    <a href="https://github.com/zyrouge"><img src="https://img.shields.io/badge/original%20author-zyrouge-d946ef"></a>
+    <a href="https://github.com/YisusPineapple"><img src="https://img.shields.io/badge/commander-YisusPineapple-AD2A5A"></a>
+    <a href="#ai-engineered"><img src="https://img.shields.io/badge/🤖%20AI%20Engineered-Lune-545DFF"></a>
 </p>
 
-<h1 align="center">Symphony</h1>
+<h1 align="center">Overture</h1>
 
-<p align="center">🎵 Lightweight, elegant music player that enhances your offline music experience. Supports Android 9 and later.</p>
+<p align="center">🎵 Offline music playback, elevated to an art form. Engineered for absolute performance and uncompromising privacy.</p>
 
 <p align="center">
-    <a href="https://github.com/zyrouge/symphony/releases/latest">Download (latest)</a> |
-    <a href="https://github.com/zyrouge/symphony/releases">View all releases</a> |
-    <a href="https://apt.izzysoft.de/fdroid/index/apk/io.github.zyrouge.symphony">IzzyOnDroid</a> |
-    <a href="https://f-droid.org/en/packages/io.github.zyrouge.symphony/">F-Droid</a> |
-    <a href="https://play.google.com/store/apps/details?id=io.github.zyrouge.symphony">Play Store</a>
+    <a href="https://github.com/YisusPineapple/symphony/releases/latest">Download (latest)</a> |
+    <a href="https://github.com/YisusPineapple/symphony/releases">View all releases</a>
 </p>
 
 <p align="center">
-    <a href=""><img src="https://img.shields.io/badge/stage-partially%20stable-545DFF"></a>
-    <a href="https://github.com/zyrouge/symphony/releases/latest"><img src="https://img.shields.io/github/v/release/zyrouge/symphony?label=latest"></a>
-    <a href="https://github.com/zyrouge/symphony/tags"><img src="https://img.shields.io/github/v/tag/zyrouge/symphony?label=latest-nightly&color=c9833c"></a>
-    <a href=""><img src="https://img.shields.io/badge/supports-Android%209+-AD2A5A"></a>
-    <a href="https://github.com/zyrouge/symphony/tree/i18n-summary"><img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/zyrouge/symphony/i18n-summary/badge-translated.json"></a>
-    <a href="https://github.com/zyrouge/symphony/tree/i18n-summary"><img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/zyrouge/symphony/i18n-summary/badge-languages.json"></a>
-    <a href="https://github.com/zyrouge/symphony/tree/i18n-summary"><img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/zyrouge/symphony/i18n-summary/badge-strings.json"></a>
-    <a href="https://github.com/zyrouge/symphony/releases"><img src="https://img.shields.io/github/downloads/zyrouge/symphony/total?color=E08312"></a>
-    <a href="https://github.com/zyrouge/symphony/releases/latest"><img src="https://img.shields.io/github/downloads/zyrouge/symphony/latest/total?color=E08312"></a>
-    <a href="https://github.com/zyrouge/symphony/actions/workflows/stable.yml"><img src="https://github.com/zyrouge/symphony/actions/workflows/stable.yml/badge.svg"></a>
-    <a href="https://github.com/zyrouge/symphony/actions/workflows/code-analysis.yml"><img src="https://github.com/zyrouge/symphony/actions/workflows/code-analysis.yml/badge.svg"></a>
+    <a href=""><img src="https://img.shields.io/badge/stage-evolution-545DFF"></a>
+    <a href=""><img src="https://img.shields.io/badge/supports-Android%207.0+-AD2A5A"></a>
     <a href="./LICENSE"><img src="https://img.shields.io/github/license/zyrouge/symphony"></a>
 </p>
 
 <br>
 
-<p align="center">
-    <img src="./media/screenshots.png" width="100%">
-</p>
+## 🤖 The AI-Engineered Era
 
-## Why?
+**Overture** is a hard-fork of the original Symphony project, born from a unique collaboration. **This project is 100% maintained, engineered, and designed by an AI (Lune / Gemini) in Pair Programming with YisusPineapple.**
 
-Why was this created? As I was getting into offline music, most of the popular good-looking music players did not support filename/path based sorting, which is what I really needed to keep my music organized. So I must have forked them and added it right? I could have done that but, I felt like trying out Kotlin and Compose, so I ended up making my own.
+Our mission is to push the boundaries of Android UI/UX using **Material 3 Expressive (M3E)** and **Liquid Glass** aesthetics, while maintaining a strict zero-telemetry policy and extreme performance optimizations for modest hardware.
 
-## Links
+## ✨ Features
 
--   [Wiki](https://github.com/zyrouge/symphony/wiki)
--   [Discord](https://discord.gg/5k9Hdq7ycm)
--   [Reddit](https://reddit.com/r/symphony_app)
--   [Github Sponsors](https://github.com/sponsors/zyrouge)
--   [Patreon](https://patreon.com/zyrouge)
+- **Liquid Glass UI:** Hardware-accelerated ambient backgrounds that react to your music, with zero-cost fallbacks for older devices.
+- **M3E Physics:** Organic, spring-based animations (60/120fps) that make the interface feel alive and tangible.
+- **Absolute Privacy:** No internet permissions required for playback. No tracking. No telemetry.
+- **Extreme Optimization:** UI rendering isolated to the `Draw` phase to prevent battery drain and device heating.
+- **Gapless Playback & Advanced Audio:** Powered by Media3 and a custom C++ metadata decoder (Metaphony).
 
-## Contributing
+## 🛠️ Architecture & Performance
 
-Before contributing, please read the [Developer Guide](https://github.com/zyrouge/symphony/wiki/Developer-Guide).
-
-Any kind of contribution including creating issues or making pull requests is welcomed. Make sure to keep it pointful. Donations through [GitHub Sponsors](https://github.com/sponsors/zyrouge) or [Patreon](https://patreon.com/zyrouge) helps me to stay motivated to keep working on this project.
-
-[![](https://contrib.rocks/image?repo=zyrouge/symphony)](https://github.com/zyrouge/symphony/graphs/contributors)
+Overture is built to run flawlessly even on older hardware (minSdk 24). We achieve this by:
+- Avoiding `Modifier.fillMaxWidth(ratio)` in favor of `Modifier.drawWithContent` for progress bars.
+- Using `GraphicsLayer` for hardware-accelerated translations instead of triggering layout recompositions.
+- Caching micro-bitmaps for ambient blur effects.
 
 ## License
 
-[AGPL-3.0](./LICENSE)
+[AGPL-3.0](./LICENSE) - Inherited from the original Symphony project by Zyrouge.
