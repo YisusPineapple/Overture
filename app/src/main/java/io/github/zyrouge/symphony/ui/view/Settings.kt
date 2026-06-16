@@ -18,7 +18,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Home
@@ -145,31 +144,6 @@ fun SettingsView(context: ViewContext, route: SettingsViewRoute) {
                             icon = Icons.Filled.Code,
                             label = context.symphony.t.Github,
                             url = AppMeta.githubRepositoryUrl,
-                        )
-                        LinkChip(
-                            context,
-                            label = context.symphony.t.Discord,
-                            url = AppMeta.discordUrl,
-                        )
-                        LinkChip(
-                            context,
-                            label = context.symphony.t.Reddit,
-                            url = AppMeta.redditUrl,
-                        )
-                        LinkChip(
-                            context,
-                            label = context.symphony.t.PlayStore,
-                            url = AppMeta.playStoreUrl,
-                        )
-                        LinkChip(
-                            context,
-                            label = context.symphony.t.FDroid,
-                            url = AppMeta.fdroidUrl,
-                        )
-                        LinkChip(
-                            context,
-                            label = context.symphony.t.IzzyOnDroid,
-                            url = AppMeta.izzyOnDroidUrl,
                         )
                     }
                     HorizontalDivider()
