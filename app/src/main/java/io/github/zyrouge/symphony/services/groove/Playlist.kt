@@ -6,10 +6,10 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 import io.github.zyrouge.symphony.Symphony
 import io.github.zyrouge.symphony.ui.helpers.Assets
+import io.github.zyrouge.symphony.ui.helpers.createHandyImageRequest
 import io.github.zyrouge.symphony.utils.DocumentFileX
 import io.github.zyrouge.symphony.utils.SimplePath
-import kotlin.io.path.Path
-import kotlin.io.path.nameWithoutExtension
+import java.io.File
 
 @Immutable
 @Entity("playlists")
@@ -72,7 +72,7 @@ data class Playlist(
             val path = DocumentFileX.getParentPathOfSingleUri(file.uri) ?: file.name
             return Playlist(
                 id = id,
-                title = Path(path).nameWithoutExtension,
+                title = File(path).nameWithoutExtension,
                 songPaths = songPaths,
                 uri = uri,
                 path = path,
