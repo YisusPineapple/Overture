@@ -1,6 +1,9 @@
 package io.github.zyrouge.symphony.ui.view.nowPlaying
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -20,7 +23,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
@@ -61,7 +66,7 @@ fun NowPlayingBodyCover(
             if (targetStateShowLyrics) {
                 NowPlayingBodyCoverLyrics(context, orientation)
             } else {
-                NowPlayingBodyCoverArtwork(context, data.song)
+                NowPlayingBodyCoverArtwork(context, data.song, data.isPlaying)
             }
         }
     }
@@ -83,8 +88,8 @@ private fun NowPlayingBodyCoverLyrics(context: ViewContext, orientation: ScreenO
                 if (orientation == ScreenOrientation.LANDSCAPE) 0.dp else 8.dp
             )
             .background(
-                MaterialTheme.colorScheme.surfaceContainer,
-                RoundedCornerShape(12.dp),
+                MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.6f), // Glass effect for lyrics
+                RoundedCornerShape(24.dp), // M3E larger radius
             ),
         contentAlignment = Alignment.Center,
     ) {
@@ -103,9 +108,20 @@ private fun NowPlayingBodyCoverLyrics(context: ViewContext, orientation: ScreenO
 }
 
 @Composable
-private fun NowPlayingBodyCoverArtwork(context: ViewContext, song: Song) {
+private fun NowPlayingBodyCoverArtwork(context: ViewContext, song: Song, isPlaying: Boolean) {
     BoxWithConstraints {
         val dimension = min(this@BoxWithConstraints.maxHeight, this@BoxWithConstraints.maxWidth)
+
+        // M3E Physics: Breathing Artwork (Apple Music / Namida style)
+        // Scales down to 85% when paused, springs back to 100% when playing
+        val artworkScale by animateFloatAsState(
+            targetValue = if (isPlaying) 1f else 0.85f,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessLow
+            ),
+            label = "ArtworkBreathingAnimation"
+        )
 
         AnimatedContent(
             label = "now-playing-body-cover-artwork",
@@ -117,15 +133,23 @@ private fun NowPlayingBodyCoverArtwork(context: ViewContext, song: Song) {
             },
         ) { targetStateSong ->
             AsyncImage(
-                targetStateSong
-                    .createArtworkImageRequest(context.symphony)
-                    .build(),
-                null,
+                model = targetStateSong.createArtworkImageRequest(context.symphony).build(),
+                contentDescription = null,
                 contentScale = ContentScale.Crop,
                 filterQuality = FilterQuality.High,
                 modifier = Modifier
                     .fillMaxSize()
-                    .clip(RoundedCornerShape(12.dp))
+                    .graphicsLayer {
+                        // Hardware accelerated scaling, zero recomposition cost
+                        scaleX = artworkScale
+                        scaleY = artworkScale
+                    }
+                    .shadow(
+                        elevation = if (isPlaying) 24.dp else 8.dp, // Dynamic shadow
+                        shape = RoundedCornerShape(32.dp), // M3E massive rounded corners
+                        clip = false
+                    )
+                    .clip(RoundedCornerShape(32.dp))
                     .swipeable(
                         minimumDragAmount = 100f,
                         onSwipeLeft = {
@@ -150,6 +174,5 @@ private fun NowPlayingBodyCoverArtwork(context: ViewContext, song: Song) {
                     }
             )
         }
-
     }
 }
