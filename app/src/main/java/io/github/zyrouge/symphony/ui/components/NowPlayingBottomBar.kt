@@ -2,8 +2,10 @@ package io.github.zyrouge.symphony.ui.components
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.MutableTransitionState
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -43,14 +45,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
@@ -68,13 +72,13 @@ import io.github.zyrouge.symphony.ui.helpers.TransitionDurations
 import io.github.zyrouge.symphony.ui.helpers.ViewContext
 import io.github.zyrouge.symphony.ui.view.NowPlayingViewRoute
 import io.github.zyrouge.symphony.utils.runIfOrThis
+import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
 
 @Composable
 fun AnimatedNowPlayingBottomBar(context: ViewContext, insetPadding: Boolean = true) {
     val visible = remember {
         MutableTransitionState(false).apply {
-            // Start the animation immediately.
             targetState = true
         }
     }
@@ -105,7 +109,10 @@ fun NowPlayingBottomBar(context: ViewContext, insetPadding: Boolean = true) {
         }
     }
     val isPlaying by context.symphony.radio.observatory.isPlaying.collectAsState()
-    val playbackPosition by context.symphony.radio.observatory.playbackPosition.collectAsState()
+    
+    // State read deferred to Draw phase to avoid recompositions
+    val playbackPositionState = context.symphony.radio.observatory.playbackPosition.collectAsState()
+    
     val showTrackControls by context.symphony.settings.miniPlayerTrackControls.flow.collectAsState()
     val showSeekControls by context.symphony.settings.miniPlayerSeekControls.flow.collectAsState()
     val seekBackDuration by context.symphony.settings.seekBackDuration.flow.collectAsState()
@@ -124,20 +131,22 @@ fun NowPlayingBottomBar(context: ViewContext, insetPadding: Boolean = true) {
     ) { currentPlayingSongTarget ->
         currentPlayingSongTarget?.let { currentSong ->
             Column {
+                val surfaceTint = MaterialTheme.colorScheme.surfaceTint
+                
+                // Zero-Recomposition Progress Bar
                 Box(
                     modifier = Modifier
-                        .background(MaterialTheme.colorScheme.surfaceTint.copy(alpha = 0.25f))
+                        .background(surfaceTint.copy(alpha = 0.25f))
                         .height(2.dp)
                         .fillMaxWidth()
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.CenterStart)
-                            .background(MaterialTheme.colorScheme.surfaceTint)
-                            .fillMaxHeight()
-                            .fillMaxWidth(playbackPosition.ratio)
-                    )
-                }
+                        .drawWithContent {
+                            drawContent()
+                            drawRect(
+                                color = surfaceTint,
+                                size = Size(size.width * playbackPositionState.value.ratio, size.height)
+                            )
+                        }
+                )
                 ElevatedCard(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -259,39 +268,55 @@ fun NowPlayingBottomBar(context: ViewContext, insetPadding: Boolean = true) {
 
 @Composable
 private fun NowPlayingBottomBarContent(context: ViewContext, song: Song) {
+    val coroutineScope = rememberCoroutineScope()
+    
     BoxWithConstraints(modifier = Modifier.clipToBounds()) {
         val cardWidthPx = this@BoxWithConstraints.constraints.maxWidth
-        var offsetX by remember { mutableFloatStateOf(0f) }
-        val cardOffsetX by animateFloatAsState(
-            offsetX / 2,
-            label = "c-now-playing-card-offset-x",
-        )
-        val cardOpacity by animateFloatAsState(
-            if (offsetX != 0f) 0.7f else 1f,
-            label = "c-now-playing-card-opacity",
-        )
+        
+        // M3E Physics: Hardware accelerated offset
+        val offsetX = remember { Animatable(0f) }
 
         Box(
             modifier = Modifier
-                .graphicsLayer(alpha = cardOpacity, translationX = cardOffsetX)
+                .graphicsLayer {
+                    translationX = offsetX.value
+                    alpha = if (offsetX.value != 0f) 0.7f else 1f
+                }
                 .pointerInput(Unit) {
                     detectHorizontalDragGestures(
                         onDragEnd = {
                             val thresh = cardWidthPx / 4
                             val affected = when {
-                                -offsetX > thresh -> context.symphony.radio.shorty.skip()
-                                offsetX > thresh -> context.symphony.radio.shorty.previous()
+                                -offsetX.value > thresh -> context.symphony.radio.shorty.skip()
+                                offsetX.value > thresh -> context.symphony.radio.shorty.previous()
                                 else -> false
                             }
-                            if (!affected) {
-                                offsetX = 0f
+                            coroutineScope.launch {
+                                if (!affected) {
+                                    // Spring back to center
+                                    offsetX.animateTo(
+                                        targetValue = 0f,
+                                        animationSpec = spring(
+                                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                                            stiffness = Spring.StiffnessLow
+                                        )
+                                    )
+                                } else {
+                                    offsetX.snapTo(0f)
+                                }
                             }
                         },
                         onDragCancel = {
-                            offsetX = 0f
+                            coroutineScope.launch {
+                                offsetX.animateTo(0f, spring(stiffness = Spring.StiffnessLow))
+                            }
                         },
-                        onHorizontalDrag = { _, dragAmount ->
-                            offsetX += dragAmount
+                        onHorizontalDrag = { change, dragAmount ->
+                            change.consume()
+                            coroutineScope.launch {
+                                // Add resistance to the drag for a more organic feel
+                                offsetX.snapTo(offsetX.value + (dragAmount * 0.6f))
+                            }
                         },
                     )
                 },
