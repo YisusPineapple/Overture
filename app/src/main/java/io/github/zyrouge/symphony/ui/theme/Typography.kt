@@ -62,7 +62,7 @@ object SymphonyBuiltinFonts {
 }
 
 object SymphonyTypography {
-    val defaultFont = SymphonyBuiltinFonts.Inter
+    val defaultFont = SymphonyBuiltinFonts.ProductSans // Overture: Product Sans by default for premium identity
     val all = mapOf(
         SymphonyBuiltinFonts.Inter.fontName to SymphonyBuiltinFonts.Inter,
         SymphonyBuiltinFonts.Poppins.fontName to SymphonyBuiltinFonts.Poppins,

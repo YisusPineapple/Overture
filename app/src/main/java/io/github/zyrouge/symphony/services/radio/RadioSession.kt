@@ -49,14 +49,10 @@ class RadioSession(val symphony: Symphony) {
                     addAction(ACTION_PLAY_PAUSE)
                     addAction(ACTION_PREVIOUS)
                     addAction(ACTION_NEXT)
+                    addAction(ACTION_FAVORITE)
                     addAction(ACTION_STOP)
                 },
                 Context.RECEIVER_EXPORTED,
-                // https://developer.android.com/reference/android/content/Context#RECEIVER_EXPORTED
-                // really, RECEIVER_EXPORTED and RECEIVER_NOT_EXPORTED makes no difference.
-                // the notification appears perfectly, Pano Scrobbler sees it,
-                // Wear OS can send signals to play/pause the app, other media apps can pause it,
-                // no clue what the difference here is... but here we are.
             )
         } else {
             @SuppressLint("UnspecifiedRegisterReceiverFlag")
@@ -66,6 +62,7 @@ class RadioSession(val symphony: Symphony) {
                     addAction(ACTION_PLAY_PAUSE)
                     addAction(ACTION_PREVIOUS)
                     addAction(ACTION_NEXT)
+                    addAction(ACTION_FAVORITE)
                     addAction(ACTION_STOP)
                 },
             )
@@ -168,6 +165,19 @@ class RadioSession(val symphony: Symphony) {
             ACTION_PLAY_PAUSE -> symphony.radio.shorty.playPause()
             ACTION_PREVIOUS -> symphony.radio.shorty.previous()
             ACTION_NEXT -> symphony.radio.shorty.skip()
+            ACTION_FAVORITE -> {
+                val songId = symphony.radio.queue.currentSongId ?: return
+                val isFavorite = symphony.groove.playlist.getFavorites()
+                    .getSongIds(symphony)
+                    .contains(songId)
+                
+                if (isFavorite) {
+                    symphony.groove.playlist.unfavorite(songId)
+                } else {
+                    symphony.groove.playlist.favorite(songId)
+                }
+                update()
+            }
             ACTION_STOP -> symphony.radio.stop()
         }
     }
@@ -292,6 +302,7 @@ class RadioSession(val symphony: Symphony) {
         val ACTION_PLAY_PAUSE = "${R.string.app_name}_play_pause"
         val ACTION_PREVIOUS = "${R.string.app_name}_previous"
         val ACTION_NEXT = "${R.string.app_name}_next"
+        val ACTION_FAVORITE = "${R.string.app_name}_favorite"
         val ACTION_STOP = "${R.string.app_name}_stop"
     }
 }
