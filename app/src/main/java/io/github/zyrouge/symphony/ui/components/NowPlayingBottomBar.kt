@@ -43,7 +43,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -54,6 +53,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -133,17 +133,19 @@ fun NowPlayingBottomBar(context: ViewContext, insetPadding: Boolean = true) {
             Column {
                 val surfaceTint = MaterialTheme.colorScheme.surfaceTint
                 
-                // Zero-Recomposition Progress Bar
+                // M3E: Floating progress line inset to prevent rounded corner clipping
                 Box(
                     modifier = Modifier
-                        .background(surfaceTint.copy(alpha = 0.25f))
+                        .padding(horizontal = 24.dp)
+                        .background(surfaceTint.copy(alpha = 0.25f), RoundedCornerShape(1.dp))
                         .height(2.dp)
                         .fillMaxWidth()
                         .drawWithContent {
                             drawContent()
-                            drawRect(
+                            drawRoundRect(
                                 color = surfaceTint,
-                                size = Size(size.width * playbackPositionState.value.ratio, size.height)
+                                size = Size(size.width * playbackPositionState.value.ratio, size.height),
+                                cornerRadius = CornerRadius(1.dp.toPx(), 1.dp.toPx())
                             )
                         }
                 )

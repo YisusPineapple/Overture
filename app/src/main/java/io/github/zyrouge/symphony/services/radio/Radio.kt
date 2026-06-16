@@ -54,8 +54,10 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
     private var player: RadioPlayer? = null
     private var nextPlayer: RadioPlayer? = null
 
+    private var isPauseRequested = false
+
     val hasPlayer get() = player?.usable == true
-    val isPlaying get() = player?.isPlaying == true
+    val isPlaying get() = player?.isPlaying == true && !isPauseRequested
     val currentPlaybackPosition get() = player?.playbackPosition
     val currentSpeed get() = player?.speed ?: RadioPlayer.DEFAULT_SPEED
     val currentPitch get() = player?.pitch ?: RadioPlayer.DEFAULT_PITCH
@@ -118,6 +120,7 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
                 }
                 setSpeed(persistedSpeed, true)
                 setPitch(persistedPitch, true)
+                isPauseRequested = false
                 if (options.autostart) {
                     start()
                 }
@@ -134,7 +137,6 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
                     "skipping song ${queue.currentSongId} (${queue.currentSongIndex}) due to $what + $extra"
                 )
                 when {
-                    // happens when change playback params fail, we skip it since its non-critical
                     what == 1 && extra == -22 -> onSongFinish(SongFinishSource.Finish)
                     else -> {
                         queue.remove(queue.currentSongIndex)
@@ -178,7 +180,10 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
         }
     }
 
-    fun resume() = start()
+    fun resume() {
+        isPauseRequested = false
+        start()
+    }
 
     private fun start() {
         player?.let {
@@ -207,6 +212,8 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
             if (!it.isPlaying) {
                 return@let
             }
+            isPauseRequested = true
+            onUpdate.dispatch(Events.Player.Paused)
             it.changeVolume(
                 to = RadioPlayer.MIN_VOLUME,
                 forceFade = forceFade,
@@ -214,13 +221,13 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
                 it.pause()
                 focus.abandonFocus()
                 onFinish()
-                onUpdate.dispatch(Events.Player.Paused)
             }
         }
     }
 
     fun pauseInstant() {
         player?.let {
+            isPauseRequested = true
             it.pause()
             onUpdate.dispatch(Events.Player.Paused)
         }
@@ -232,6 +239,7 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
         clearSleepTimer()
         persistedSpeed = RadioPlayer.DEFAULT_SPEED
         persistedPitch = RadioPlayer.DEFAULT_PITCH
+        isPauseRequested = false
         if (ended) onUpdate.dispatch(Events.Player.Ended)
     }
 

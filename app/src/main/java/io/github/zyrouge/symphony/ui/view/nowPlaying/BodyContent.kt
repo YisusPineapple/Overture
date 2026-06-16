@@ -2,6 +2,7 @@ package io.github.zyrouge.symphony.ui.view.nowPlaying
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
@@ -45,8 +47,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -343,6 +347,11 @@ private fun NowPlayingSeekBar(
 
     var dragging by remember { mutableStateOf(false) }
     var dragRatio by remember { mutableFloatStateOf(0f) }
+    
+    val currentRatio = if (dragging) dragRatio else ratio
+    
+    val activeColor = MaterialTheme.colorScheme.primary
+    val inactiveColor = MaterialTheme.colorScheme.surfaceVariant
 
     BoxWithConstraints(
         modifier = Modifier
@@ -352,78 +361,66 @@ private fun NowPlayingSeekBar(
     ) {
         val sliderWidth = this@BoxWithConstraints.maxWidth
 
-        Box(
+        Canvas(
             modifier = Modifier
-                .height(sliderHeight)
-                .fillMaxWidth()
+                .fillMaxSize()
                 .pointerInput(Unit) {
                     detectTapGestures(
                         onTap = { offset ->
-                            val tapRatio = (offset.x / sliderWidth.toPx()).coerceIn(0f..1f)
+                            val tapRatio = (offset.x / size.width).coerceIn(0f, 1f)
                             onSeekEnd(tapRatio)
                         }
                     )
                 }
                 .pointerInput(Unit) {
-                    var offsetX = 0f
                     detectHorizontalDragGestures(
                         onDragStart = { offset ->
-                            offsetX = offset.x
                             dragging = true
+                            dragRatio = (offset.x / size.width).coerceIn(0f, 1f)
                             onSeekStart()
                         },
                         onDragEnd = {
                             onSeekEnd(dragRatio)
-                            offsetX = 0f
                             dragging = false
-                            dragRatio = 0f
                         },
                         onDragCancel = {
                             onSeekCancel()
-                            offsetX = 0f
                             dragging = false
-                            dragRatio = 0f
                         },
-                        onHorizontalDrag = { pointer, dragAmount ->
-                            pointer.consume()
-                            offsetX += dragAmount
-                            dragRatio = (offsetX / sliderWidth.toPx()).coerceIn(0f..1f)
+                        onHorizontalDrag = { change, _ ->
+                            change.consume()
+                            dragRatio = (change.position.x / size.width).coerceIn(0f, 1f)
                             onSeek(dragRatio)
-                        },
+                        }
                     )
                 }
-        )
-        Box(
-            modifier = Modifier
-                .padding(thumbSizeHalf, 0.dp)
-                .height(trackHeight)
-                .fillMaxWidth()
-                .background(
-                    MaterialTheme.colorScheme.surfaceVariant,
-                    RoundedCornerShape(thumbSizeHalf)
-                )
         ) {
-            Box(
-                modifier = Modifier
-                    .height(trackHeight)
-                    .fillMaxWidth(if (dragging) dragRatio else ratio)
-                    .background(
-                        MaterialTheme.colorScheme.primary,
-                        RoundedCornerShape(thumbSizeHalf)
-                    )
+            val trackY = size.height / 2f
+            val trackH = trackHeight.toPx()
+            val cornerRadius = CornerRadius(trackH / 2f, trackH / 2f)
+
+            // 1. Draw Inactive Track
+            drawRoundRect(
+                color = inactiveColor,
+                topLeft = Offset(thumbSizeHalf.toPx(), trackY - trackH / 2f),
+                size = Size(size.width - thumbSize.toPx(), trackH),
+                cornerRadius = cornerRadius
             )
-        }
-        Box(modifier = Modifier.fillMaxWidth()) {
-            Box(
-                modifier = Modifier
-                    .size(thumbSize)
-                    .offset(
-                        sliderWidth
-                            .minus(thumbSizeHalf.times(2))
-                            .times(if (dragging) dragRatio else ratio),
-                        0.dp
-                    )
-                    .background(MaterialTheme.colorScheme.primary, CircleShape)
+
+            // 2. Draw Active Track
+            val activeWidth = (size.width - thumbSize.toPx()) * currentRatio
+            drawRoundRect(
+                color = activeColor,
+                topLeft = Offset(thumbSizeHalf.toPx(), trackY - trackH / 2f),
+                size = Size(activeWidth, trackH),
+                cornerRadius = cornerRadius
+            )
+
+            // 3. Draw Thumb
+            drawCircle(
+                color = activeColor,
+                radius = thumbSizeHalf.toPx(),
+                center = Offset(activeWidth + thumbSizeHalf.toPx(), trackY)
             )
         }
     }
