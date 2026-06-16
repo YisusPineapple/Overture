@@ -18,6 +18,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Home
@@ -92,7 +93,8 @@ fun SettingsView(context: ViewContext, route: SettingsViewRoute) {
                             context.navController.popBackStack()
                         }
                     ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null)
+                        // Overture: Safe and retrocompatible ArrowBack icon to prevent AAPT2 compile errors
+                        Icon(Icons.Filled.ArrowBack, null)
                     }
                 },
                 actions = {
