@@ -13,7 +13,7 @@ android {
 
     defaultConfig {
         applicationId = "io.github.zyrouge.symphony"
-        minSdk = libs.versions.min.sdk.get().toInt()
+        minSdk = 24 // Bajado a API 24 según tus directrices
         targetSdk = libs.versions.target.sdk.get().toInt()
 
         versionCode = 115
@@ -27,10 +27,19 @@ android {
 
     signingConfigs {
         register("release") {
-            storeFile = System.getenv("SIGNING_KEYSTORE_FILE")?.let { rootProject.file(it) }
-            storePassword = System.getenv("SIGNING_KEYSTORE_PASSWORD")
-            keyAlias = System.getenv("SIGNING_KEY_ALIAS")
-            keyPassword = System.getenv("SIGNING_KEY_PASSWORD")
+            val keystorePassword = System.getenv("SIGNING_KEYSTORE_PASSWORD")
+            if (!keystorePassword.isNullOrBlank()) {
+                storeFile = System.getenv("SIGNING_KEYSTORE_FILE")?.let { rootProject.file(it) }
+                storePassword = keystorePassword
+                keyAlias = System.getenv("SIGNING_KEY_ALIAS")
+                keyPassword = System.getenv("SIGNING_KEY_PASSWORD")
+            } else {
+                // Fallback to debug keystore if CI secrets are missing
+                storeFile = signingConfigs.getByName("debug").storeFile
+                storePassword = signingConfigs.getByName("debug").storePassword
+                keyAlias = signingConfigs.getByName("debug").keyAlias
+                keyPassword = signingConfigs.getByName("debug").keyPassword
+            }
         }
     }
 
