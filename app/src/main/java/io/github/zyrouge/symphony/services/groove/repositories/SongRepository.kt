@@ -62,12 +62,14 @@ class SongRepository(private val symphony: Symphony) {
     }
 
     internal fun onSong(song: Song) {
+        // Overture: Deduplicate memory repository when loading from cache and disk simultaneously
+        if (cache.containsKey(song.id)) return
         cache[song.id] = song
         pathCache[song.path] = song.id
         explorer.addChildFile(SimplePath(song.path)).data = song.id
         emitIds()
         _all.update {
-            it + song.id
+            if (it.contains(song.id)) it else it + song.id
         }
         emitCount()
     }
@@ -99,6 +101,7 @@ class SongRepository(private val symphony: Symphony) {
                 get(it)?.composers?.joinToStringIfNotEmpty(sensitive)
             }
 
+            @Suppress("DEPRECATION")
             SortBy.ALBUM_ARTIST -> songIds.sortedBy {
                 get(it)?.albumArtists?.joinToStringIfNotEmpty(sensitive)
             }
