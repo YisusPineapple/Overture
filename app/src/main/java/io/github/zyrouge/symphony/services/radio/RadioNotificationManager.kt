@@ -7,6 +7,7 @@ import android.os.Build
 import androidx.core.app.NotificationChannelCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.ServiceCompat
+import androidx.core.content.ContextCompat
 import io.github.zyrouge.symphony.R
 import io.github.zyrouge.symphony.Symphony
 
@@ -79,7 +80,8 @@ class RadioNotificationManager(val symphony: Symphony) {
             return
         }
         val intent = Intent(symphony.applicationContext, RadioNotificationService::class.java)
-        symphony.applicationContext.startForegroundService(intent)
+        // M3E/Performance: Use ContextCompat to support API 24 without runtime crashes
+        ContextCompat.startForegroundService(symphony.applicationContext, intent)
         state = State.PREPARING
     }
 
