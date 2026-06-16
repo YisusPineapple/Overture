@@ -10,10 +10,10 @@ import org.json.JSONObject
 
 @Suppress("ConstPropertyName")
 object AppMeta {
-    const val appName = "Symphony"
-    const val author = "Zyrouge"
-    const val githubRepositoryOwner = "zyrouge"
-    const val githubRepositoryName = "symphony"
+    const val appName = "Overture"
+    const val author = "YisusPineapple"
+    const val githubRepositoryOwner = "YisusPineapple"
+    const val githubRepositoryName = "Overture"
     const val githubProfileUrl = "https://github.com/$githubRepositoryOwner"
     const val githubRepositoryUrl =
         "https://github.com/$githubRepositoryOwner/$githubRepositoryName"
