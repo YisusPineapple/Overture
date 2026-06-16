@@ -1,6 +1,8 @@
 package io.github.zyrouge.symphony
 
+import android.os.Build
 import android.os.Bundle
+import android.view.Display
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -36,6 +38,9 @@ class MainActivity : ComponentActivity() {
         symphony.emitActivityReady()
         attachHandlers()
 
+        // Optimize display refresh rate for smooth 90Hz/120Hz/144Hz/165Hz rendering
+        setupHighRefreshRate()
+
         enableEdgeToEdge()
         setContent {
             LaunchedEffect(LocalContext.current) {
@@ -58,6 +63,35 @@ class MainActivity : ComponentActivity() {
     private fun attachHandlers() {
         gSymphony?.closeApp = {
             finish()
+        }
+    }
+
+    private fun setupHighRefreshRate() {
+        // Display.Mode was introduced in API 23, completely safe for minSdk 24
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            try {
+                @Suppress("DEPRECATION")
+                val display = window.windowManager.defaultDisplay
+                display?.let { d ->
+                    val maxRefreshRate = d.supportedModes
+                        .map { it.refreshRate }
+                        .maxOrNull() ?: 60f
+                    
+                    // Find the highest resolution mode that supports the maximum refresh rate
+                    val bestMode = d.supportedModes
+                        .filter { it.refreshRate == maxRefreshRate }
+                        .maxByOrNull { it.physicalWidth * it.physicalHeight }
+                    
+                    bestMode?.let { mode ->
+                        val params = window.attributes
+                        params.preferredDisplayModeId = mode.modeId
+                        window.attributes = params
+                        Logger.warn("MainActivity", "Display configured to max refresh rate: ${mode.refreshRate}Hz")
+                    }
+                }
+            } catch (err: Exception) {
+                Logger.error("MainActivity", "Failed to configure high refresh rate: $err")
+            }
         }
     }
 }
