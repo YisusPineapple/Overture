@@ -65,7 +65,7 @@ data class TimedContentTextStyle(
                 highlighted = it.copy(fontWeight = FontWeight.SemiBold),
                 active = it.copy(fontWeight = FontWeight.Bold),
                 inactive = it.copy(fontWeight = FontWeight.Normal),
-                spacing = 16.dp, // M3E: Increased spacing for better readability
+                spacing = 16.dp, 
             )
         }
     }
@@ -99,12 +99,7 @@ fun TimedContentText(
                 if (!content.isSynced) {
                     return@collect
                 }
-                val isActiveIndexInvisible = activeIndex > -1 && visibleRange.run {
-                    activeIndex < first && activeIndex > second
-                }
-                if (isActiveIndexInvisible) {
-                    return@collect
-                }
+                
                 val nActiveIndex = content.pairs.indexOfLast { x ->
                     x.first <= currentPosition
                 }
@@ -112,9 +107,14 @@ fun TimedContentText(
                     return@collect
                 }
                 activeIndex = nActiveIndex
-                if (scrollState.isScrollInProgress) {
+                
+                // Overture: Check if the new active line is already on-screen.
+                // If it is visible, completely bypass scroll animations to avoid stutters.
+                val isLineVisible = activeIndex in visibleRange.first..visibleRange.second
+                if (isLineVisible && !scrollState.isScrollInProgress) {
                     return@collect
                 }
+                
                 coroutineScope.launch {
                     val scrollIndex = calculateRelaxedScrollIndex(nActiveIndex, visibleRange)
                     scrollState.animateScrollToItem(scrollIndex)
@@ -139,7 +139,6 @@ fun TimedContentText(
             val highlight = !content.isSynced || i < activeIndex
             val active = i == activeIndex
 
-            // M3E Physics: Hardware accelerated scaling and alpha
             val scale by animateFloatAsState(
                 targetValue = if (active) 1.05f else 0.95f,
                 animationSpec = spring(
@@ -169,11 +168,9 @@ fun TimedContentText(
                     .animateItem()
                     .fillMaxWidth()
                     .graphicsLayer {
-                        // Zero recomposition cost for animations
                         scaleX = scale
                         scaleY = scale
                         this.alpha = alpha
-                        // Pivot to center-left so it scales naturally
                         transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0f, 0.5f)
                     }
                     .pointerInput(Unit) {
