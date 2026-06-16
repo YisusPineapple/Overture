@@ -27,17 +27,12 @@ android {
 
     signingConfigs {
         register("release") {
-            val keystorePassword = System.getenv("SIGNING_KEYSTORE_PASSWORD")
-            if (!keystorePassword.isNullOrBlank()) {
-                storeFile = System.getenv("SIGNING_KEYSTORE_FILE")?.let { rootProject.file(it) }
-                storePassword = keystorePassword
+            val keystoreFile = System.getenv("SIGNING_KEYSTORE_FILE")
+            if (!keystoreFile.isNullOrBlank()) {
+                storeFile = rootProject.file(keystoreFile)
+                storePassword = System.getenv("SIGNING_KEYSTORE_PASSWORD")
                 keyAlias = System.getenv("SIGNING_KEY_ALIAS")
                 keyPassword = System.getenv("SIGNING_KEY_PASSWORD")
-            } else {
-                storeFile = signingConfigs.getByName("debug").storeFile
-                storePassword = signingConfigs.getByName("debug").storePassword
-                keyAlias = signingConfigs.getByName("debug").keyAlias
-                keyPassword = signingConfigs.getByName("debug").keyPassword
             }
         }
     }
@@ -49,7 +44,15 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.findByName("release")
+            
+            // M3E/CI: Dynamically assign signing configuration to bypass missing file validation on forks
+            val keystorePassword = System.getenv("SIGNING_KEYSTORE_PASSWORD")
+            signingConfig = if (!keystorePassword.isNullOrBlank()) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
+            
             ndk {
                 debugSymbolLevel = "FULL"
             }
