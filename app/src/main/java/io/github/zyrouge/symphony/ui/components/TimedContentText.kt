@@ -1,6 +1,10 @@
 package io.github.zyrouge.symphony.ui.components
 
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -30,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -57,10 +62,10 @@ data class TimedContentTextStyle(
             contentColor: Color,
         ) = textStyle.copy(color = contentColor).let {
             TimedContentTextStyle(
-                highlighted = it,
+                highlighted = it.copy(fontWeight = FontWeight.SemiBold),
                 active = it.copy(fontWeight = FontWeight.Bold),
-                inactive = it.copy(color = contentColor.copy(alpha = 0.5f)),
-                spacing = 0.dp,
+                inactive = it.copy(fontWeight = FontWeight.Normal),
+                spacing = 16.dp, // M3E: Increased spacing for better readability
             )
         }
     }
@@ -128,11 +133,27 @@ fun TimedContentText(
         verticalArrangement = Arrangement.spacedBy(style.spacing),
     ) {
         item {
-            Spacer(modifier = Modifier.height(padding.calculateTopPadding()))
+            Spacer(modifier = Modifier.height(padding.calculateTopPadding() + 64.dp))
         }
         itemsIndexed(content.pairs) { i, x ->
             val highlight = !content.isSynced || i < activeIndex
             val active = i == activeIndex
+
+            // M3E Physics: Hardware accelerated scaling and alpha
+            val scale by animateFloatAsState(
+                targetValue = if (active) 1.05f else 0.95f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
+                ),
+                label = "LyricsScale"
+            )
+            
+            val alpha by animateFloatAsState(
+                targetValue = if (active) 1f else if (highlight) 0.6f else 0.3f,
+                animationSpec = tween(300),
+                label = "LyricsAlpha"
+            )
 
             val textStyle by animateTextStyleAsState(
                 targetValue = when {
@@ -143,10 +164,18 @@ fun TimedContentText(
             )
 
             Text(
-                x.second,
+                text = x.second,
                 modifier = Modifier
                     .animateItem()
                     .fillMaxWidth()
+                    .graphicsLayer {
+                        // Zero recomposition cost for animations
+                        scaleX = scale
+                        scaleY = scale
+                        this.alpha = alpha
+                        // Pivot to center-left so it scales naturally
+                        transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0f, 0.5f)
+                    }
                     .pointerInput(Unit) {
                         detectTapGestures { _ ->
                             if (!content.isSynced) {
@@ -164,7 +193,7 @@ fun TimedContentText(
             )
         }
         item {
-            Spacer(modifier = Modifier.height(padding.calculateBottomPadding()))
+            Spacer(modifier = Modifier.height(padding.calculateBottomPadding() + 64.dp))
         }
     }
 }
@@ -174,7 +203,6 @@ private fun calculateRelaxedScrollIndex(target: Int, range: Pair<Int, Int>): Int
     return max(0, target - relaxLines)
 }
 
-// taken from https://www.sinasamaki.com/animating-fonts-in-jetpack-compose/
 @Composable
 private fun animateTextStyleAsState(targetValue: TextStyle): State<TextStyle> {
     val animation = remember { Animatable(0f) }
