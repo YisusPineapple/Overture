@@ -14,6 +14,7 @@ import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import android.view.KeyEvent
 import androidx.activity.result.contract.ActivityResultContract
+import androidx.palette.graphics.Palette
 import io.github.zyrouge.symphony.R
 import io.github.zyrouge.symphony.Symphony
 import io.github.zyrouge.symphony.services.groove.Song
@@ -221,6 +222,12 @@ class RadioSession(val symphony: Symphony) {
         currentSongId = song.id
         val artworkUri = symphony.groove.song.getArtworkUri(song.id)
         val artworkBitmap = artworkCacher.getArtwork(song)
+        
+        // M3E: Extract Dynamic Palette Color
+        val palette = Palette.from(artworkBitmap).generate()
+        val dominant = palette.getVibrantColor(palette.getDominantColor(0))
+        symphony.radio.observatory.setDominantColor(if (dominant != 0) dominant else null)
+        
         val playbackPosition = symphony.radio.currentPlaybackPosition
             ?: RadioPlayer.PlaybackPosition(played = 0L, total = song.duration)
         val isPlaying = symphony.radio.isPlaying

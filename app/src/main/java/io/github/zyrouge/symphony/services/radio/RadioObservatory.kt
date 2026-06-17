@@ -34,6 +34,9 @@ class RadioObservatory(private val symphony: Symphony) {
     val pitch = _pitch.asStateFlow()
     private val _persistedPitch = MutableStateFlow(RadioPlayer.DEFAULT_PITCH)
     val persistedPitch = _persistedPitch.asStateFlow()
+    
+    private val _dominantColor = MutableStateFlow<Int?>(null)
+    val dominantColor = _dominantColor.asStateFlow()
 
     fun start() {
         updateSubscriber = symphony.radio.onUpdate.subscribe { event ->
@@ -94,7 +97,6 @@ class RadioObservatory(private val symphony: Symphony) {
         _persistedPitch.update { symphony.radio.persistedPitch }
     }
 
-
     private fun emitPauseOnCurrentSongEnd() = _pauseOnCurrentSongEnd.update {
         symphony.radio.pauseOnCurrentSongEnd
     }
@@ -103,5 +105,9 @@ class RadioObservatory(private val symphony: Symphony) {
         _queue.update {
             symphony.radio.queue.currentQueue.toList()
         }
+    }
+    
+    fun setDominantColor(color: Int?) {
+        _dominantColor.update { color }
     }
 }

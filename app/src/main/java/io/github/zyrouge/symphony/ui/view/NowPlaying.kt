@@ -6,6 +6,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.Color
 import io.github.zyrouge.symphony.services.groove.Song
 import io.github.zyrouge.symphony.services.radio.RadioQueue
 import io.github.zyrouge.symphony.ui.helpers.ViewContext
@@ -34,6 +35,7 @@ data class NowPlayingData(
     val seekForwardDuration: Int,
     val controlsLayout: NowPlayingControlsLayout,
     val lyricsLayout: NowPlayingLyricsLayout,
+    val dominantColor: Color?,
 )
 
 data class NowPlayingStates(
@@ -99,6 +101,9 @@ fun NowPlayingObserver(
     val seekForwardDuration by context.symphony.settings.seekForwardDuration.flow.collectAsState()
     val controlsLayout by context.symphony.settings.nowPlayingControlsLayout.flow.collectAsState()
     val lyricsLayout by context.symphony.settings.nowPlayingLyricsLayout.flow.collectAsState()
+    
+    val dominantColorInt by context.symphony.radio.observatory.dominantColor.collectAsState()
+    val dominantColor = remember(dominantColorInt) { dominantColorInt?.let { Color(it) } }
 
     val data = when {
         isViable -> NowPlayingData(
@@ -120,6 +125,7 @@ fun NowPlayingObserver(
             seekForwardDuration = seekForwardDuration,
             controlsLayout = controlsLayout,
             lyricsLayout = lyricsLayout,
+            dominantColor = dominantColor,
         )
 
         else -> null

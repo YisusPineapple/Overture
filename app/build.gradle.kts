@@ -45,7 +45,6 @@ android {
                 "proguard-rules.pro"
             )
             
-            // M3E/CI: Dynamically assign signing configuration to bypass missing file validation on forks
             val keystorePassword = System.getenv("SIGNING_KEYSTORE_PASSWORD")
             signingConfig = if (!keystorePassword.isNullOrBlank()) {
                 signingConfigs.getByName("release")
@@ -136,6 +135,7 @@ dependencies {
     implementation(libs.media3.exoplayer)
     implementation(libs.media3.session)
     implementation(libs.okhttp3)
+    implementation(libs.palette)
     ksp(libs.room.compiler)
     implementation(libs.room.ktx)
     implementation(libs.room.runtime)

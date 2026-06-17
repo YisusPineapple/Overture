@@ -71,6 +71,8 @@ fun NowPlayingBodyContent(context: ViewContext, data: NowPlayingData) {
     val isFavorite by remember(data) {
         derivedStateOf { favoriteSongIds.contains(data.song.id) }
     }
+    
+    val dynamicColor = data.dominantColor ?: MaterialTheme.colorScheme.primary
 
     data.run {
         Column {
@@ -140,7 +142,7 @@ fun NowPlayingBodyContent(context: ViewContext, data: NowPlayingData) {
                             isFavorite -> Icon(
                                 Icons.Filled.Favorite,
                                 null,
-                                tint = MaterialTheme.colorScheme.primary,
+                                tint = dynamicColor,
                             )
 
                             else -> Icon(Icons.Filled.FavoriteBorder, null)
@@ -170,22 +172,25 @@ fun NowPlayingBodyContent(context: ViewContext, data: NowPlayingData) {
             when (controlsLayout) {
                 NowPlayingControlsLayout.CompactLeft -> NowPlayingCompactControls(
                     context,
-                    data = data
+                    data = data,
+                    dynamicColor = dynamicColor,
                 )
 
                 NowPlayingControlsLayout.CompactRight -> NowPlayingCompactControls(
                     context,
                     data = data,
+                    dynamicColor = dynamicColor,
                     modifier = Modifier.align(Alignment.End)
                 )
 
                 NowPlayingControlsLayout.Traditional -> NowPlayingTraditionalControls(
                     context,
                     data = data,
+                    dynamicColor = dynamicColor,
                 )
             }
             Spacer(modifier = Modifier.height(defaultHorizontalPadding + 8.dp))
-            NowPlayingSeekBar(context)
+            NowPlayingSeekBar(context, dynamicColor)
             Spacer(modifier = Modifier.height(defaultHorizontalPadding))
         }
     }
@@ -195,6 +200,7 @@ fun NowPlayingBodyContent(context: ViewContext, data: NowPlayingData) {
 fun NowPlayingCompactControls(
     context: ViewContext,
     data: NowPlayingData,
+    dynamicColor: Color,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -206,6 +212,7 @@ fun NowPlayingCompactControls(
             data = data,
             style = NowPlayingControlButtonStyle(
                 color = NowPlayingControlButtonColor.Primary,
+                customColor = dynamicColor,
             ),
         )
         NowPlayingSkipPreviousButton(
@@ -242,7 +249,7 @@ fun NowPlayingCompactControls(
 }
 
 @Composable
-fun NowPlayingTraditionalControls(context: ViewContext, data: NowPlayingData) {
+fun NowPlayingTraditionalControls(context: ViewContext, data: NowPlayingData, dynamicColor: Color) {
     Row(
         modifier = Modifier
             .padding(defaultHorizontalPadding, 0.dp)
@@ -269,7 +276,8 @@ fun NowPlayingTraditionalControls(context: ViewContext, data: NowPlayingData) {
             context,
             data = data,
             style = NowPlayingControlButtonStyle(
-                color = NowPlayingControlButtonColor.Surface,
+                color = NowPlayingControlButtonColor.Primary,
+                customColor = dynamicColor,
                 size = NowPlayingControlButtonSize.Large,
             ),
         )
@@ -293,7 +301,7 @@ fun NowPlayingTraditionalControls(context: ViewContext, data: NowPlayingData) {
 }
 
 @Composable
-fun NowPlayingSeekBar(context: ViewContext) {
+fun NowPlayingSeekBar(context: ViewContext, dynamicColor: Color) {
     val playbackPosition by context.symphony.radio.observatory.playbackPosition.collectAsState()
 
     Row(
@@ -311,6 +319,7 @@ fun NowPlayingSeekBar(context: ViewContext) {
         Box(modifier = Modifier.weight(1f)) {
             NowPlayingSeekBar(
                 ratio = playbackPosition.ratio,
+                dynamicColor = dynamicColor,
                 onSeekStart = {
                     seekRatio = 0f
                 },
@@ -336,6 +345,7 @@ fun NowPlayingSeekBar(context: ViewContext) {
 @Composable
 private fun NowPlayingSeekBar(
     ratio: Float,
+    dynamicColor: Color,
     onSeekStart: () -> Unit,
     onSeek: (Float) -> Unit,
     onSeekEnd: (Float) -> Unit,
@@ -351,7 +361,7 @@ private fun NowPlayingSeekBar(
     
     val currentRatio = if (dragging) dragRatio else ratio
     
-    val activeColor = MaterialTheme.colorScheme.primary
+    val activeColor = dynamicColor
     val inactiveColor = MaterialTheme.colorScheme.surfaceVariant
 
     BoxWithConstraints(
@@ -550,6 +560,7 @@ private enum class NowPlayingControlButtonSize {
 
 private data class NowPlayingControlButtonStyle(
     val color: NowPlayingControlButtonColor,
+    val customColor: Color? = null,
     val size: NowPlayingControlButtonSize = NowPlayingControlButtonSize.Default,
 )
 
@@ -560,7 +571,7 @@ private fun NowPlayingControlButton(
     onClick: () -> Unit,
 ) {
     val backgroundColor = when (style.color) {
-        NowPlayingControlButtonColor.Primary -> MaterialTheme.colorScheme.primary
+        NowPlayingControlButtonColor.Primary -> style.customColor ?: MaterialTheme.colorScheme.primary
         NowPlayingControlButtonColor.Surface -> MaterialTheme.colorScheme.surfaceVariant
         NowPlayingControlButtonColor.Transparent -> Color.Transparent
     }

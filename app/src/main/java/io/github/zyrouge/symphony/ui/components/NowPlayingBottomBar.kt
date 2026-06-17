@@ -2,6 +2,7 @@ package io.github.zyrouge.symphony.ui.components
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.Spring
@@ -68,6 +69,8 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import io.github.zyrouge.symphony.services.groove.Song
 import io.github.zyrouge.symphony.ui.helpers.FadeTransition
+import io.github.zyrouge.symphony.ui.helpers.LocalAnimatedContentScope
+import io.github.zyrouge.symphony.ui.helpers.LocalSharedTransitionScope
 import io.github.zyrouge.symphony.ui.helpers.TransitionDurations
 import io.github.zyrouge.symphony.ui.helpers.ViewContext
 import io.github.zyrouge.symphony.ui.view.NowPlayingViewRoute
@@ -99,6 +102,7 @@ private fun <T> nowPlayingBottomBarEnterAnimationSpec() = TransitionDurations.No
     delayMillis = TransitionDurations.Fast.milliseconds,
 )
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun NowPlayingBottomBar(context: ViewContext, insetPadding: Boolean = true) {
     val queue by context.symphony.radio.observatory.queue.collectAsState()
@@ -110,13 +114,19 @@ fun NowPlayingBottomBar(context: ViewContext, insetPadding: Boolean = true) {
     }
     val isPlaying by context.symphony.radio.observatory.isPlaying.collectAsState()
     
-    // State read deferred to Draw phase to avoid recompositions
     val playbackPositionState = context.symphony.radio.observatory.playbackPosition.collectAsState()
     
     val showTrackControls by context.symphony.settings.miniPlayerTrackControls.flow.collectAsState()
     val showSeekControls by context.symphony.settings.miniPlayerSeekControls.flow.collectAsState()
     val seekBackDuration by context.symphony.settings.seekBackDuration.flow.collectAsState()
     val seekForwardDuration by context.symphony.settings.seekForwardDuration.flow.collectAsState()
+
+    val sharedTransitionScope = LocalSharedTransitionScope.current
+    val animatedVisibilityScope = LocalAnimatedContentScope.current
+    
+    val dominantColorInt by context.symphony.radio.observatory.dominantColor.collectAsState()
+    val surfaceTint = MaterialTheme.colorScheme.surfaceTint
+    val dynamicColor = remember(dominantColorInt) { dominantColorInt?.let { Color(it) } ?: surfaceTint }
 
     AnimatedContent(
         modifier = Modifier.fillMaxWidth(),
@@ -131,26 +141,23 @@ fun NowPlayingBottomBar(context: ViewContext, insetPadding: Boolean = true) {
     ) { currentPlayingSongTarget ->
         currentPlayingSongTarget?.let { currentSong ->
             Column {
-                val surfaceTint = MaterialTheme.colorScheme.surfaceTint
-                
-                // M3E: Floating progress line inset to prevent rounded corner clipping
+                // M3E: Dynamic Color Progress Line
                 Box(
                     modifier = Modifier
                         .padding(horizontal = 24.dp)
-                        .background(surfaceTint.copy(alpha = 0.25f), RoundedCornerShape(1.dp))
+                        .background(dynamicColor.copy(alpha = 0.25f), RoundedCornerShape(1.dp))
                         .height(2.dp)
                         .fillMaxWidth()
                         .drawWithContent {
                             drawContent()
                             drawRoundRect(
-                                color = surfaceTint,
+                                color = dynamicColor,
                                 size = Size(size.width * playbackPositionState.value.ratio, size.height),
                                 cornerRadius = CornerRadius(1.dp.toPx(), 1.dp.toPx())
                             )
                         }
                 )
                 
-                // M3E: Replaced ElevatedCard with a transparent Box to maintain Liquid Glass effect
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -191,6 +198,16 @@ fun NowPlayingBottomBar(context: ViewContext, insetPadding: Boolean = true) {
                                 null,
                                 modifier = Modifier
                                     .size(45.dp)
+                                    .then(
+                                        if (sharedTransitionScope != null && animatedVisibilityScope != null) {
+                                            with(sharedTransitionScope) {
+                                                Modifier.sharedElement(
+                                                    state = rememberSharedContentState(key = "artwork-${song.id}"),
+                                                    animatedVisibilityScope = animatedVisibilityScope,
+                                                )
+                                            }
+                                        } else Modifier
+                                    )
                                     .clip(RoundedCornerShape(10.dp))
                             )
                         }
@@ -237,7 +254,8 @@ fun NowPlayingBottomBar(context: ViewContext, insetPadding: Boolean = true) {
                                     !isPlaying -> Icons.Filled.PlayArrow
                                     else -> Icons.Filled.Pause
                                 },
-                                null
+                                null,
+                                tint = dynamicColor // M3E: Dynamic Accent Color
                             )
                         }
                         if (showSeekControls) {
@@ -276,7 +294,6 @@ private fun NowPlayingBottomBarContent(context: ViewContext, song: Song) {
     BoxWithConstraints(modifier = Modifier.clipToBounds()) {
         val cardWidthPx = this@BoxWithConstraints.constraints.maxWidth
         
-        // M3E Physics: Hardware accelerated offset
         val offsetX = remember { Animatable(0f) }
 
         Box(
@@ -296,7 +313,6 @@ private fun NowPlayingBottomBarContent(context: ViewContext, song: Song) {
                             }
                             coroutineScope.launch {
                                 if (!affected) {
-                                    // Spring back to center
                                     offsetX.animateTo(
                                         targetValue = 0f,
                                         animationSpec = spring(
@@ -317,7 +333,6 @@ private fun NowPlayingBottomBarContent(context: ViewContext, song: Song) {
                         onHorizontalDrag = { change, dragAmount ->
                             change.consume()
                             coroutineScope.launch {
-                                // Add resistance to the drag for a more organic feel
                                 offsetX.snapTo(offsetX.value + (dragAmount * 0.6f))
                             }
                         },

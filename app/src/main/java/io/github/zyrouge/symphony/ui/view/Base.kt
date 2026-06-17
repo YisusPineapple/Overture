@@ -2,9 +2,12 @@ package io.github.zyrouge.symphony.ui.view
 
 import androidx.compose.animation.AnimatedContentScope
 import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDestination
@@ -15,6 +18,8 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import io.github.zyrouge.symphony.MainActivity
 import io.github.zyrouge.symphony.Symphony
+import io.github.zyrouge.symphony.ui.helpers.LocalAnimatedContentScope
+import io.github.zyrouge.symphony.ui.helpers.LocalSharedTransitionScope
 import io.github.zyrouge.symphony.ui.helpers.ScaleTransition
 import io.github.zyrouge.symphony.ui.helpers.SlideTransition
 import io.github.zyrouge.symphony.ui.helpers.ViewContext
@@ -36,6 +41,7 @@ import io.github.zyrouge.symphony.ui.view.settings.UpdateSettingsViewRoute
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.serializer
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun BaseView(symphony: Symphony, activity: MainActivity) {
     val navController = rememberNavController()
@@ -49,63 +55,69 @@ fun BaseView(symphony: Symphony, activity: MainActivity) {
 
     SymphonyTheme(context) {
         Surface(color = MaterialTheme.colorScheme.background) {
-            NavHost(
-                navController = navController,
-                startDestination = HomeViewRoute,
-            ) {
-                baseComposable<HomeViewRoute> {
-                    HomeView(context)
-                }
-                baseComposable<NowPlayingViewRoute> {
-                    NowPlayingView(context)
-                }
-                baseComposable<QueueViewRoute> {
-                    QueueView(context)
-                }
-                baseComposable<ArtistViewRoute> {
-                    ArtistView(context, it.toRoute())
-                }
-                baseComposable<AlbumViewRoute> {
-                    AlbumView(context, it.toRoute())
-                }
-                baseComposable<SearchViewRoute> {
-                    SearchView(context, it.toRoute())
-                }
-                baseComposable<AlbumArtistViewRoute> {
-                    AlbumArtistView(context, it.toRoute())
-                }
-                baseComposable<GenreViewRoute> {
-                    GenreView(context, it.toRoute())
-                }
-                baseComposable<PlaylistViewRoute> {
-                    PlaylistView(context, it.toRoute())
-                }
-                baseComposable<LyricsViewRoute> {
-                    LyricsView(context)
-                }
-                baseComposable<SettingsViewRoute> {
-                    SettingsView(context, it.toRoute())
-                }
-                baseComposable<AppearanceSettingsViewRoute> {
-                    AppearanceSettingsView(context)
-                }
-                baseComposable<GrooveSettingsViewRoute> {
-                    GrooveSettingsView(context, it.toRoute())
-                }
-                baseComposable<HomePageSettingsViewRoute> {
-                    HomePageSettingsView(context)
-                }
-                baseComposable<MiniPlayerSettingsViewRoute> {
-                    MiniPlayerSettingsView(context)
-                }
-                baseComposable<NowPlayingSettingsViewRoute> {
-                    NowPlayingSettingsView(context)
-                }
-                baseComposable<PlayerSettingsViewRoute> {
-                    PlayerSettingsView(context)
-                }
-                baseComposable<UpdateSettingsViewRoute> {
-                    UpdateSettingsView(context)
+            SharedTransitionLayout {
+                CompositionLocalProvider(
+                    LocalSharedTransitionScope provides this
+                ) {
+                    NavHost(
+                        navController = navController,
+                        startDestination = HomeViewRoute,
+                    ) {
+                        baseComposable<HomeViewRoute> {
+                            HomeView(context)
+                        }
+                        baseComposable<NowPlayingViewRoute> {
+                            NowPlayingView(context)
+                        }
+                        baseComposable<QueueViewRoute> {
+                            QueueView(context)
+                        }
+                        baseComposable<ArtistViewRoute> {
+                            ArtistView(context, it.toRoute())
+                        }
+                        baseComposable<AlbumViewRoute> {
+                            AlbumView(context, it.toRoute())
+                        }
+                        baseComposable<SearchViewRoute> {
+                            SearchView(context, it.toRoute())
+                        }
+                        baseComposable<AlbumArtistViewRoute> {
+                            AlbumArtistView(context, it.toRoute())
+                        }
+                        baseComposable<GenreViewRoute> {
+                            GenreView(context, it.toRoute())
+                        }
+                        baseComposable<PlaylistViewRoute> {
+                            PlaylistView(context, it.toRoute())
+                        }
+                        baseComposable<LyricsViewRoute> {
+                            LyricsView(context)
+                        }
+                        baseComposable<SettingsViewRoute> {
+                            SettingsView(context, it.toRoute())
+                        }
+                        baseComposable<AppearanceSettingsViewRoute> {
+                            AppearanceSettingsView(context)
+                        }
+                        baseComposable<GrooveSettingsViewRoute> {
+                            GrooveSettingsView(context, it.toRoute())
+                        }
+                        baseComposable<HomePageSettingsViewRoute> {
+                            HomePageSettingsView(context)
+                        }
+                        baseComposable<MiniPlayerSettingsViewRoute> {
+                            MiniPlayerSettingsView(context)
+                        }
+                        baseComposable<NowPlayingSettingsViewRoute> {
+                            NowPlayingSettingsView(context)
+                        }
+                        baseComposable<PlayerSettingsViewRoute> {
+                            PlayerSettingsView(context)
+                        }
+                        baseComposable<UpdateSettingsViewRoute> {
+                            UpdateSettingsView(context)
+                        }
+                    }
                 }
             }
         }
@@ -152,8 +164,12 @@ private inline fun <reified T : Any> NavGraphBuilder.baseComposable(
                 else -> SlideTransition.slideLeft.exitTransition()
             }
         },
-    ) {
-        content(it)
+    ) { entry ->
+        CompositionLocalProvider(
+            LocalAnimatedContentScope provides this@composable
+        ) {
+            content(entry)
+        }
     }
 }
 

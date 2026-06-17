@@ -1,6 +1,7 @@
 package io.github.zyrouge.symphony.ui.view.nowPlaying
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -37,6 +38,8 @@ import io.github.zyrouge.symphony.ui.components.LyricsText
 import io.github.zyrouge.symphony.ui.components.TimedContentTextStyle
 import io.github.zyrouge.symphony.ui.components.swipeable
 import io.github.zyrouge.symphony.ui.helpers.FadeTransition
+import io.github.zyrouge.symphony.ui.helpers.LocalAnimatedContentScope
+import io.github.zyrouge.symphony.ui.helpers.LocalSharedTransitionScope
 import io.github.zyrouge.symphony.ui.helpers.ScreenOrientation
 import io.github.zyrouge.symphony.ui.helpers.ViewContext
 import io.github.zyrouge.symphony.ui.view.AlbumViewRoute
@@ -88,8 +91,8 @@ private fun NowPlayingBodyCoverLyrics(context: ViewContext, orientation: ScreenO
                 if (orientation == ScreenOrientation.LANDSCAPE) 0.dp else 8.dp
             )
             .background(
-                MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.6f), // Glass effect for lyrics
-                RoundedCornerShape(24.dp), // M3E larger radius
+                MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.6f),
+                RoundedCornerShape(24.dp),
             ),
         contentAlignment = Alignment.Center,
     ) {
@@ -107,13 +110,15 @@ private fun NowPlayingBodyCoverLyrics(context: ViewContext, orientation: ScreenO
     }
 }
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 private fun NowPlayingBodyCoverArtwork(context: ViewContext, song: Song, isPlaying: Boolean) {
+    val sharedTransitionScope = LocalSharedTransitionScope.current
+    val animatedVisibilityScope = LocalAnimatedContentScope.current
+
     BoxWithConstraints {
         val dimension = min(this@BoxWithConstraints.maxHeight, this@BoxWithConstraints.maxWidth)
 
-        // M3E Physics: Breathing Artwork (Apple Music / Namida style)
-        // Scales down to 85% when paused, springs back to 100% when playing
         val artworkScale by animateFloatAsState(
             targetValue = if (isPlaying) 1f else 0.85f,
             animationSpec = spring(
@@ -139,14 +144,23 @@ private fun NowPlayingBodyCoverArtwork(context: ViewContext, song: Song, isPlayi
                 filterQuality = FilterQuality.High,
                 modifier = Modifier
                     .fillMaxSize()
+                    .then(
+                        if (sharedTransitionScope != null && animatedVisibilityScope != null) {
+                            with(sharedTransitionScope) {
+                                Modifier.sharedElement(
+                                    state = rememberSharedContentState(key = "artwork-${targetStateSong.id}"),
+                                    animatedVisibilityScope = animatedVisibilityScope,
+                                )
+                            }
+                        } else Modifier
+                    )
                     .graphicsLayer {
-                        // Hardware accelerated scaling, zero recomposition cost
                         scaleX = artworkScale
                         scaleY = artworkScale
                     }
                     .shadow(
-                        elevation = if (isPlaying) 24.dp else 8.dp, // Dynamic shadow
-                        shape = RoundedCornerShape(32.dp), // M3E massive rounded corners
+                        elevation = if (isPlaying) 24.dp else 8.dp,
+                        shape = RoundedCornerShape(32.dp),
                         clip = false
                     )
                     .clip(RoundedCornerShape(32.dp))
