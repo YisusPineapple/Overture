@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -301,6 +302,8 @@ fun HomeView(context: ViewContext) {
                     NowPlayingBottomBar(context, false)
                     NavigationBar(
                         containerColor = Color.Transparent, // Transparent to let the glass show
+                        tonalElevation = 0.dp, // Remove M3 tonal tint
+                        windowInsets = WindowInsets(0, 0, 0, 0), // Remove default bottom padding inside the pill
                         modifier = Modifier
                             .pointerInput(Unit) {
                                 detectTapGestures {

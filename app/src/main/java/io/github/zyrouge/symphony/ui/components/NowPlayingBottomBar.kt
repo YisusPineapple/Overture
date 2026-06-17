@@ -13,6 +13,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -35,7 +36,6 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -58,7 +58,6 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.boundsInParent
@@ -150,10 +149,15 @@ fun NowPlayingBottomBar(context: ViewContext, insetPadding: Boolean = true) {
                             )
                         }
                 )
-                ElevatedCard(
+                
+                // M3E: Replaced ElevatedCard with a transparent Box to maintain Liquid Glass effect
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .wrapContentHeight()
+                        .clickable {
+                            context.navController.navigate(NowPlayingViewRoute)
+                        }
                         .swipeable(
                             onSwipeUp = {
                                 context.navController.navigate(NowPlayingViewRoute)
@@ -161,11 +165,7 @@ fun NowPlayingBottomBar(context: ViewContext, insetPadding: Boolean = true) {
                             onSwipeDown = {
                                 context.symphony.radio.stop()
                             },
-                        ),
-                    shape = RectangleShape,
-                    onClick = {
-                        context.navController.navigate(NowPlayingViewRoute)
-                    }
+                        )
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
