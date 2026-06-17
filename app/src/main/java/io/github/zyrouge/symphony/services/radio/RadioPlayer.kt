@@ -1,10 +1,12 @@
 package io.github.zyrouge.symphony.services.radio
 
 import android.net.Uri
+import androidx.annotation.OptIn
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import io.github.zyrouge.symphony.Symphony
 import io.github.zyrouge.symphony.utils.Logger
@@ -16,6 +18,7 @@ typealias RadioPlayerOnPreparedListener = () -> Unit
 typealias RadioPlayerOnPlaybackPositionListener = (RadioPlayer.PlaybackPosition) -> Unit
 typealias RadioPlayerOnFinishListener = () -> Unit
 typealias RadioPlayerOnErrorListener = (Int, Int) -> Unit
+typealias RadioPlayerOnCrossfadeTriggerListener = () -> Unit
 
 class RadioPlayer(val symphony: Symphony, val id: String, val uri: Uri) {
     data class PlaybackPosition(val played: Long, val total: Long) {
@@ -40,6 +43,7 @@ class RadioPlayer(val symphony: Symphony, val id: String, val uri: Uri) {
     private var onPlaybackPosition: RadioPlayerOnPlaybackPositionListener? = null
     private var onFinish: RadioPlayerOnFinishListener? = null
     private var onError: RadioPlayerOnErrorListener? = null
+    private var onCrossfadeTrigger: RadioPlayerOnCrossfadeTriggerListener? = null
     private var fader: RadioEffects.Fader? = null
     private var playbackPositionUpdater: Timer? = null
 
@@ -53,10 +57,15 @@ class RadioPlayer(val symphony: Symphony, val id: String, val uri: Uri) {
         private set
     var pitch = DEFAULT_PITCH
         private set
+    var crossfadeTriggered = false
+        private set
 
     val usable get() = state == State.Prepared
     val fadePlayback get() = symphony.settings.fadePlayback.value
+    
+    @get:OptIn(UnstableApi::class)
     val audioSessionId get() = exoPlayer.audioSessionId
+    
     val isPlaying get() = exoPlayer.isPlaying
 
     val playbackPosition
@@ -116,8 +125,10 @@ class RadioPlayer(val symphony: Symphony, val id: String, val uri: Uri) {
         destroyDurationTimer()
         // ExoPlayer MUST be released on the Main thread to prevent IllegalStateException
         symphony.groove.coroutineScope.launch(Dispatchers.Main) {
-            exoPlayer.stop()
-            exoPlayer.release()
+            try {
+                exoPlayer.stop()
+                exoPlayer.release()
+            } catch (_: Exception) {}
         }
     }
 
@@ -171,7 +182,14 @@ class RadioPlayer(val symphony: Symphony, val id: String, val uri: Uri) {
 
     fun changeVolumeInstant(to: Float) {
         volume = to
-        exoPlayer.volume = to
+        // Fader uses a background Timer, so we must dispatch ExoPlayer calls to the Main thread
+        symphony.groove.coroutineScope.launch(Dispatchers.Main) {
+            try {
+                if (state != State.Destroyed) {
+                    exoPlayer.volume = to
+                }
+            } catch (_: Exception) {}
+        }
     }
 
     fun changeSpeed(to: Float) {
@@ -215,6 +233,10 @@ class RadioPlayer(val symphony: Symphony, val id: String, val uri: Uri) {
     fun setOnErrorListener(listener: RadioPlayerOnErrorListener?) {
         onError = listener
     }
+    
+    fun setOnCrossfadeTriggerListener(listener: RadioPlayerOnCrossfadeTriggerListener?) {
+        onCrossfadeTrigger = listener
+    }
 
     private fun createDurationTimer() {
         if (playbackPositionUpdater != null) return
@@ -224,8 +246,19 @@ class RadioPlayer(val symphony: Symphony, val id: String, val uri: Uri) {
     }
 
     private fun emitPlaybackPosition() {
-        playbackPosition?.let {
-            onPlaybackPosition?.invoke(it)
+        playbackPosition?.let { pos ->
+            onPlaybackPosition?.invoke(pos)
+            
+            // Intelligent Crossfade Trigger
+            if (!crossfadeTriggered && fadePlayback) {
+                val fadeDurationMs = (symphony.settings.fadePlaybackDuration.value * 1000).toLong()
+                if (pos.total > 0 && pos.played >= pos.total - fadeDurationMs) {
+                    crossfadeTriggered = true
+                    symphony.groove.coroutineScope.launch(Dispatchers.Main) {
+                        onCrossfadeTrigger?.invoke()
+                    }
+                }
+            }
         }
     }
 

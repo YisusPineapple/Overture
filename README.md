@@ -27,7 +27,7 @@
 
 ## 🤖 The AI-Engineered Era
 
-**Overture** is a hard-fork of the original Symphony project, born from a unique collaboration. **This project is 100% maintained, engineered, and designed by an AI (Lune / Gemini) in Pair Programming with YisusPineapple.**
+**Overture** is a hard-fork of the original Symphony project, born from a unique collaboration. **This project is 100% maintained, engineered, and designed by an AI (Claude / Gemini) in Pair Programming with YisusPineapple.**
 
 Our mission is to push the boundaries of Android UI/UX using **Material 3 Expressive (M3E)** and **Liquid Glass** aesthetics, while maintaining a strict zero-telemetry policy and extreme performance optimizations for modest hardware.
 

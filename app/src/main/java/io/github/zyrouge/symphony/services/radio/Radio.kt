@@ -51,7 +51,10 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
 
     private val focus = RadioFocus(symphony)
     private val nativeReceiver = RadioNativeReceiver(symphony)
+    
+    // Dual-Player Architecture for PRO DJ-Style Crossfade
     private var player: RadioPlayer? = null
+    private var fadingPlayer: RadioPlayer? = null
     private var nextPlayer: RadioPlayer? = null
 
     private var isPauseRequested = false
@@ -94,14 +97,32 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
     )
 
     fun play(options: PlayOptions) {
-        stopCurrentSong()
         val song = queue.getSongIdAt(options.index)?.let { symphony.groove.song.get(it) }
         if (song == null) {
+            stopCurrentSong()
             onSongFinish(SongFinishSource.Exception)
             return
         }
         try {
             queue.currentSongIndex = options.index
+            
+            // Intelligent Crossfade Logic
+            val prevPlayer = player
+            if (prevPlayer != null && prevPlayer.isPlaying && symphony.settings.fadePlayback.value) {
+                fadingPlayer?.destroy() // Clean up any stuck fading player
+                fadingPlayer = prevPlayer
+                // Disconnect listeners so the fading player doesn't update the UI anymore
+                fadingPlayer?.setOnPlaybackPositionListener(null)
+                fadingPlayer?.setOnFinishListener(null)
+                fadingPlayer?.setOnCrossfadeTriggerListener(null)
+                fadingPlayer?.changeVolume(RadioPlayer.MIN_VOLUME, forceFade = true) {
+                    fadingPlayer?.destroy()
+                    if (fadingPlayer == prevPlayer) fadingPlayer = null
+                }
+            } else {
+                prevPlayer?.destroy()
+            }
+
             player = nextPlayer?.takeIf {
                 when {
                     it.id == song.id -> true
@@ -112,6 +133,7 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
                 }
             } ?: RadioPlayer(symphony, song.id, song.uri)
             nextPlayer = null
+            
             player!!.setOnPreparedListener {
                 options.startPosition?.let {
                     if (it > 0L) {
@@ -128,6 +150,15 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
             player!!.setOnPlaybackPositionListener {
                 onPlaybackPositionUpdate.dispatch(it)
             }
+            player!!.setOnCrossfadeTriggerListener {
+                if (!pauseOnCurrentSongEnd) {
+                    val (nextSongIndex, autostart) = getNextSong(SongFinishSource.Finish)
+                    if (autostart) {
+                        // Trigger the next song early to overlap with the current fading song
+                        play(PlayOptions(index = nextSongIndex, autostart = true))
+                    }
+                }
+            }
             player!!.setOnFinishListener {
                 onSongFinish(SongFinishSource.Finish)
             }
@@ -136,13 +167,8 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
                     "Radio",
                     "skipping song ${queue.currentSongId} (${queue.currentSongIndex}) due to $what + $extra"
                 )
-                when {
-                    what == 1 && extra == -22 -> onSongFinish(SongFinishSource.Finish)
-                    else -> {
-                        queue.remove(queue.currentSongIndex)
-                        onSongFinish(SongFinishSource.Exception)
-                    }
-                }
+                queue.remove(queue.currentSongIndex)
+                onSongFinish(SongFinishSource.Exception)
             }
             player!!.prepare()
             prepareNextPlayer()
@@ -193,8 +219,10 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
             }
             if (it.fadePlayback) {
                 it.changeVolumeInstant(RadioPlayer.MIN_VOLUME)
+                it.changeVolume(RadioPlayer.MAX_VOLUME, forceFade = true) {}
+            } else {
+                it.changeVolumeInstant(RadioPlayer.MAX_VOLUME)
             }
-            it.changeVolume(RadioPlayer.MAX_VOLUME) {}
             it.start()
             onUpdate.dispatch(
                 when {
@@ -208,6 +236,10 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
     fun pause() = pause {}
 
     private fun pause(forceFade: Boolean = false, onFinish: () -> Unit) {
+        // Stop the fading player immediately to avoid cacophony
+        fadingPlayer?.destroy()
+        fadingPlayer = null
+        
         player?.let {
             if (!it.isPlaying) {
                 return@let
@@ -222,10 +254,13 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
                 focus.abandonFocus()
                 onFinish()
             }
-        }
+        } ?: onFinish()
     }
 
     fun pauseInstant() {
+        fadingPlayer?.destroy()
+        fadingPlayer = null
+        
         player?.let {
             isPauseRequested = true
             it.pause()
@@ -329,11 +364,16 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
     }
 
     private fun stopCurrentSong() {
+        fadingPlayer?.destroy()
+        fadingPlayer = null
+        
         player?.let {
+            val p = it
             player = null
-            it.setOnPlaybackPositionListener {}
-            it.changeVolume(RadioPlayer.MIN_VOLUME) { _ ->
-                it.stop()
+            p.setOnPlaybackPositionListener(null)
+            p.setOnCrossfadeTriggerListener(null)
+            p.changeVolume(RadioPlayer.MIN_VOLUME) { _ ->
+                p.stop()
                 onUpdate.dispatch(Events.Player.Stopped)
             }
         }
