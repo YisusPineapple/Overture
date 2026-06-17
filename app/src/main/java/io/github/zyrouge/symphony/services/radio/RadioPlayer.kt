@@ -80,7 +80,11 @@ class RadioPlayer(val symphony: Symphony, val id: String, val uri: Uri) {
 
     init {
         exoPlayer = ExoPlayer.Builder(symphony.applicationContext).build().apply {
-            skipSilenceEnabled = true // PRO DJ-Style: Skip silence at start/end of tracks
+            // Overture: We explicitly disable skipSilenceEnabled. 
+            // ExoPlayer's default silence skipper is too aggressive (cuts >100ms) 
+            // and destroys the artistic intent of musical pauses.
+            skipSilenceEnabled = false 
+            
             setMediaItem(MediaItem.fromUri(uri))
             addListener(object : Player.Listener {
                 override fun onPlaybackStateChanged(playbackState: Int) {
@@ -166,7 +170,7 @@ class RadioPlayer(val symphony: Symphony, val id: String, val uri: Uri) {
                         from = volume, 
                         to = to, 
                         duration = duration,
-                        curve = RadioEffects.FadeCurve.EQUAL_POWER // PRO DJ-Style: Constant power curve
+                        curve = RadioEffects.FadeCurve.EQUAL_POWER
                     ),
                     onUpdate = {
                         changeVolumeInstant(it)
