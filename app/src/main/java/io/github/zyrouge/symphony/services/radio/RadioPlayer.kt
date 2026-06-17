@@ -80,6 +80,7 @@ class RadioPlayer(val symphony: Symphony, val id: String, val uri: Uri) {
 
     init {
         exoPlayer = ExoPlayer.Builder(symphony.applicationContext).build().apply {
+            skipSilenceEnabled = true // PRO DJ-Style: Skip silence at start/end of tracks
             setMediaItem(MediaItem.fromUri(uri))
             addListener(object : Player.Listener {
                 override fun onPlaybackStateChanged(playbackState: Int) {
@@ -123,7 +124,6 @@ class RadioPlayer(val symphony: Symphony, val id: String, val uri: Uri) {
     fun destroy() {
         state = State.Destroyed
         destroyDurationTimer()
-        // ExoPlayer MUST be released on the Main thread to prevent IllegalStateException
         symphony.groove.coroutineScope.launch(Dispatchers.Main) {
             try {
                 exoPlayer.stop()
@@ -162,7 +162,12 @@ class RadioPlayer(val symphony: Symphony, val id: String, val uri: Uri) {
             forceFade || fadePlayback -> {
                 val duration = (symphony.settings.fadePlaybackDuration.value * 1000).toInt()
                 fader = RadioEffects.Fader(
-                    RadioEffects.Fader.Options(volume, to, duration),
+                    RadioEffects.Fader.Options(
+                        from = volume, 
+                        to = to, 
+                        duration = duration,
+                        curve = RadioEffects.FadeCurve.EQUAL_POWER // PRO DJ-Style: Constant power curve
+                    ),
                     onUpdate = {
                         changeVolumeInstant(it)
                     },
@@ -182,7 +187,6 @@ class RadioPlayer(val symphony: Symphony, val id: String, val uri: Uri) {
 
     fun changeVolumeInstant(to: Float) {
         volume = to
-        // Fader uses a background Timer, so we must dispatch ExoPlayer calls to the Main thread
         symphony.groove.coroutineScope.launch(Dispatchers.Main) {
             try {
                 if (state != State.Destroyed) {
@@ -249,7 +253,6 @@ class RadioPlayer(val symphony: Symphony, val id: String, val uri: Uri) {
         playbackPosition?.let { pos ->
             onPlaybackPosition?.invoke(pos)
             
-            // Intelligent Crossfade Trigger
             if (!crossfadeTriggered && fadePlayback) {
                 val fadeDurationMs = (symphony.settings.fadePlaybackDuration.value * 1000).toLong()
                 if (pos.total > 0 && pos.played >= pos.total - fadeDurationMs) {

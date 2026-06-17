@@ -1,10 +1,13 @@
 package io.github.zyrouge.symphony.services.radio
 
 import java.util.Timer
-import kotlin.math.max
-import kotlin.math.min
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.math.PI
 
 object RadioEffects {
+    enum class FadeCurve { LINEAR, EQUAL_POWER }
+
     class Fader(
         val options: Options,
         val onUpdate: (Float) -> Unit,
@@ -15,6 +18,7 @@ object RadioEffects {
             val to: Float,
             val duration: Int,
             val interval: Int = DEFAULT_INTERVAL,
+            val curve: FadeCurve = FadeCurve.EQUAL_POWER
         ) {
             companion object {
                 private const val DEFAULT_INTERVAL = 50
@@ -23,23 +27,30 @@ object RadioEffects {
 
         private var timer: Timer? = null
         private var ended = false
+        private var elapsed = 0
 
         fun start() {
-            val increments =
-                (options.to - options.from) * (options.interval.toFloat() / options.duration)
-            var volume = options.from
-            val isReverse = options.to < options.from
+            val isFadeOut = options.to < options.from
             timer = kotlin.concurrent.timer(period = options.interval.toLong()) {
-                if (volume != options.to) {
-                    onUpdate(volume)
-                    volume = when {
-                        isReverse -> max(options.to, volume + increments)
-                        else -> min(options.to, volume + increments)
-                    }
-                } else {
+                elapsed += options.interval
+                if (elapsed >= options.duration) {
+                    onUpdate(options.to)
                     ended = true
                     onFinish(true)
                     destroy()
+                } else {
+                    val progress = elapsed.toFloat() / options.duration
+                    val volume = when (options.curve) {
+                        FadeCurve.LINEAR -> options.from + (options.to - options.from) * progress
+                        FadeCurve.EQUAL_POWER -> {
+                            if (isFadeOut) {
+                                options.from * cos(progress * PI / 2).toFloat()
+                            } else {
+                                options.to * sin(progress * PI / 2).toFloat()
+                            }
+                        }
+                    }
+                    onUpdate(volume)
                 }
             }
         }
@@ -54,36 +65,4 @@ object RadioEffects {
             timer = null
         }
     }
-
-//    fun fadeIn(player: RadioPlayer, onEnd: () -> Unit) {
-//        val options = Fader.Options(
-//            when {
-//                player.isPlaying -> player.volume
-//                else -> RadioPlayer.MIN_VOLUME
-//            },
-//            RadioPlayer.MAX_VOLUME,
-//        )
-//        val fader = Fader(
-//            options,
-//            onUpdate = { player.setVolume(it) },
-//            onFinish = { onEnd() }
-//        )
-//        player.setVolume(options.from)
-//        player.start()
-//        fader.start()
-//    }
-//
-//    fun fadeOut(player: RadioPlayer, onEnd: () -> Unit) {
-//        val options = Fader.Options(player.volume, RadioPlayer.MIN_VOLUME)
-//        val fader = Fader(
-//            options,
-//            onUpdate = { player.setVolume(it) },
-//            onFinish = {
-//                player.pause()
-//                onEnd()
-//            }
-//        )
-//        player.setVolume(options.from)
-//        fader.start()
-//    }
 }

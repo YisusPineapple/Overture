@@ -110,6 +110,25 @@ class RadioQueue(private val symphony: Symphony) {
         }
     }
 
+    fun move(from: Int, to: Int) {
+        if (from == to || !hasSongAt(from) || !hasSongAt(to)) return
+        
+        val itemOriginal = originalQueue.removeAt(from)
+        originalQueue.add(to, itemOriginal)
+        
+        val itemCurrent = currentQueue.removeAt(from)
+        currentQueue.add(to, itemCurrent)
+
+        if (currentSongIndex == from) {
+            currentSongIndex = to
+        } else if (currentSongIndex in (from + 1)..to) {
+            currentSongIndex--
+        } else if (currentSongIndex in to until from) {
+            currentSongIndex++
+        }
+        symphony.radio.onUpdate.dispatch(Radio.Events.Queue.Modified)
+    }
+
     fun setLoopMode(loopMode: LoopMode) {
         currentLoopMode = loopMode
     }

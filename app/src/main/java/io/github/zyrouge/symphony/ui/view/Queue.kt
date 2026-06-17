@@ -5,6 +5,7 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -36,6 +37,7 @@ import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,7 +48,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import io.github.zyrouge.symphony.services.groove.Groove
 import io.github.zyrouge.symphony.ui.components.IconButtonPlaceholderSize
 import io.github.zyrouge.symphony.ui.components.NewPlaylistDialog
@@ -72,6 +77,10 @@ fun QueueView(context: ViewContext) {
         initialFirstVisibleItemIndex = queueIndex.coerceAtLeast(0),
     )
     var showSaveDialog by remember { mutableStateOf(false) }
+
+    // Drag & Drop State
+    var draggedIndex by remember { mutableStateOf<Int?>(null) }
+    var draggedOffsetY by remember { mutableFloatStateOf(0f) }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -140,7 +149,41 @@ fun QueueView(context: ViewContext) {
                 if (queue.isEmpty()) {
                     NothingPlayingBody(context)
                 } else {
-                    LazyColumn(state = listState) {
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier.pointerInput(queue) {
+                            detectDragGesturesAfterLongPress(
+                                onDragStart = { offset ->
+                                    val item = listState.layoutInfo.visibleItemsInfo.firstOrNull {
+                                        offset.y.toInt() in it.offset..(it.offset + it.size)
+                                    }
+                                    if (item != null) {
+                                        draggedIndex = item.index
+                                        draggedOffsetY = 0f
+                                    }
+                                },
+                                onDrag = { change, dragAmount ->
+                                    change.consume()
+                                    draggedOffsetY += dragAmount.y
+                                    val cIndex = draggedIndex ?: return@detectDragGesturesAfterLongPress
+                                    val cItem = listState.layoutInfo.visibleItemsInfo.firstOrNull { it.index == cIndex } ?: return@detectDragGesturesAfterLongPress
+                                    
+                                    val centerY = cItem.offset + draggedOffsetY + cItem.size / 2
+                                    val targetItem = listState.layoutInfo.visibleItemsInfo.firstOrNull {
+                                        it.index != cIndex && centerY.toInt() in it.offset..(it.offset + it.size)
+                                    }
+                                    
+                                    if (targetItem != null) {
+                                        context.symphony.radio.queue.move(cIndex, targetItem.index)
+                                        draggedIndex = targetItem.index
+                                        draggedOffsetY += (cItem.offset - targetItem.offset)
+                                    }
+                                },
+                                onDragEnd = { draggedIndex = null; draggedOffsetY = 0f },
+                                onDragCancel = { draggedIndex = null; draggedOffsetY = 0f }
+                            )
+                        }
+                    ) {
                         itemsIndexed(
                             queue,
                             key = { i, id -> "$i-$id" },
@@ -148,7 +191,10 @@ fun QueueView(context: ViewContext) {
                         ) { i, songId ->
                             context.symphony.groove.song.get(songId)?.let { song ->
                                 
-                                // M3E Physics: Swipe to dismiss state
+                                val isDragged = i == draggedIndex
+                                val zIndex = if (isDragged) 1f else 0f
+                                val translationY = if (isDragged) draggedOffsetY else 0f
+
                                 val dismissState = rememberSwipeToDismissBoxState(
                                     confirmValueChange = { dismissValue ->
                                         if (dismissValue != SwipeToDismissBoxValue.Settled) {
@@ -160,87 +206,96 @@ fun QueueView(context: ViewContext) {
                                     }
                                 )
 
-                                SwipeToDismissBox(
-                                    state = dismissState,
-                                    enableDismissFromStartToEnd = true,
-                                    enableDismissFromEndToStart = true,
-                                    backgroundContent = {
-                                        val isDismissing = dismissState.targetValue != SwipeToDismissBoxValue.Settled
-                                        val color by animateColorAsState(
-                                            targetValue = if (isDismissing) ThemeColors.Red.copy(alpha = 0.8f) else Color.Transparent,
-                                            label = "dismissColor"
-                                        )
-                                        val scale by animateFloatAsState(
-                                            targetValue = if (isDismissing) 1.2f else 0.8f,
-                                            animationSpec = spring(
-                                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                                stiffness = Spring.StiffnessLow
-                                            ),
-                                            label = "dismissScale"
-                                        )
-                                        val alignment = if (dismissState.dismissDirection == SwipeToDismissBoxValue.StartToEnd) 
-                                            Alignment.CenterStart else Alignment.CenterEnd
-
-                                        Box(
-                                            Modifier
-                                                .fillMaxSize()
-                                                .padding(vertical = 4.dp)
-                                                .clip(RoundedCornerShape(12.dp))
-                                                .background(color)
-                                                .padding(horizontal = 24.dp),
-                                            contentAlignment = alignment
-                                        ) {
-                                            Icon(
-                                                Icons.Filled.Delete,
-                                                contentDescription = "Remove",
-                                                tint = Color.White,
-                                                modifier = Modifier.scale(scale)
-                                            )
+                                Box(
+                                    modifier = Modifier
+                                        .zIndex(zIndex)
+                                        .graphicsLayer {
+                                            this.translationY = translationY
+                                            this.shadowElevation = if (isDragged) 16.dp.toPx() else 0f
                                         }
-                                    },
-                                    content = {
-                                        Box {
-                                            SongCard(
-                                                context,
-                                                song,
-                                                autoHighlight = false,
-                                                highlighted = i == queueIndex,
-                                                leading = {
-                                                    Checkbox(
-                                                        checked = selectedSongIndices.contains(i),
-                                                        onCheckedChange = {
-                                                            if (selectedSongIndices.contains(i)) {
-                                                                selectedSongIndices.remove(i)
-                                                            } else {
-                                                                selectedSongIndices.add(i)
-                                                            }
-                                                        },
-                                                        modifier = Modifier.offset((-4).dp)
-                                                    )
-                                                    Spacer(modifier = Modifier.width(8.dp))
-                                                },
-                                                thumbnailLabel = {
-                                                    Text((i + 1).toString())
-                                                },
-                                                onClick = {
-                                                    context.symphony.radio.jumpTo(i)
-                                                    coroutineScope.launch {
-                                                        listState.animateScrollToItem(i)
-                                                    }
-                                                },
+                                ) {
+                                    SwipeToDismissBox(
+                                        state = dismissState,
+                                        enableDismissFromStartToEnd = true,
+                                        enableDismissFromEndToStart = true,
+                                        backgroundContent = {
+                                            val isDismissing = dismissState.targetValue != SwipeToDismissBoxValue.Settled
+                                            val color by animateColorAsState(
+                                                targetValue = if (isDismissing) ThemeColors.Red.copy(alpha = 0.8f) else Color.Transparent,
+                                                label = "dismissColor"
                                             )
-                                            if (i < queueIndex) {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .matchParentSize()
-                                                        .background(
-                                                            MaterialTheme.colorScheme.background.copy(alpha = 0.4f)
-                                                        )
+                                            val scale by animateFloatAsState(
+                                                targetValue = if (isDismissing) 1.2f else 0.8f,
+                                                animationSpec = spring(
+                                                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                                                    stiffness = Spring.StiffnessLow
+                                                ),
+                                                label = "dismissScale"
+                                            )
+                                            val alignment = if (dismissState.dismissDirection == SwipeToDismissBoxValue.StartToEnd) 
+                                                Alignment.CenterStart else Alignment.CenterEnd
+
+                                            Box(
+                                                Modifier
+                                                    .fillMaxSize()
+                                                    .padding(vertical = 4.dp)
+                                                    .clip(RoundedCornerShape(12.dp))
+                                                    .background(color)
+                                                    .padding(horizontal = 24.dp),
+                                                contentAlignment = alignment
+                                            ) {
+                                                Icon(
+                                                    Icons.Filled.Delete,
+                                                    contentDescription = "Remove",
+                                                    tint = Color.White,
+                                                    modifier = Modifier.scale(scale)
                                                 )
                                             }
+                                        },
+                                        content = {
+                                            Box {
+                                                SongCard(
+                                                    context,
+                                                    song,
+                                                    autoHighlight = false,
+                                                    highlighted = i == queueIndex,
+                                                    leading = {
+                                                        Checkbox(
+                                                            checked = selectedSongIndices.contains(i),
+                                                            onCheckedChange = {
+                                                                if (selectedSongIndices.contains(i)) {
+                                                                    selectedSongIndices.remove(i)
+                                                                } else {
+                                                                    selectedSongIndices.add(i)
+                                                                }
+                                                            },
+                                                            modifier = Modifier.offset((-4).dp)
+                                                        )
+                                                        Spacer(modifier = Modifier.width(8.dp))
+                                                    },
+                                                    thumbnailLabel = {
+                                                        Text((i + 1).toString())
+                                                    },
+                                                    onClick = {
+                                                        context.symphony.radio.jumpTo(i)
+                                                        coroutineScope.launch {
+                                                            listState.animateScrollToItem(i)
+                                                        }
+                                                    },
+                                                )
+                                                if (i < queueIndex) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .matchParentSize()
+                                                            .background(
+                                                                MaterialTheme.colorScheme.background.copy(alpha = 0.4f)
+                                                            )
+                                                    )
+                                                }
+                                            }
                                         }
-                                    }
-                                )
+                                    )
+                                }
                             }
                         }
                     }
