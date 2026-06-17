@@ -91,34 +91,38 @@ fun LyricsView(context: ViewContext) {
                     .fillMaxSize(),
             ) {
                 when {
-                    data != null -> Column {
-                        Box(modifier = Modifier.weight(1f)) {
-                            LyricsText(
-                                context,
-                                style = TimedContentTextStyle(
-                                    highlighted = MaterialTheme.typography.titleMedium.copy(
-                                        color = LocalContentColor.current,
+                    data != null -> {
+                        val dynamicColor = data.dominantColor ?: MaterialTheme.colorScheme.primary
+                        
+                        Column {
+                            Box(modifier = Modifier.weight(1f)) {
+                                LyricsText(
+                                    context,
+                                    style = TimedContentTextStyle(
+                                        highlighted = MaterialTheme.typography.titleMedium.copy(
+                                            color = LocalContentColor.current,
+                                        ),
+                                        active = MaterialTheme.typography.titleLarge.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary,
+                                        ),
+                                        inactive = MaterialTheme.typography.titleMedium.copy(
+                                            color = LocalContentColor.current.copy(alpha = 0.5f),
+                                        ),
+                                        spacing = 8.dp,
                                     ),
-                                    active = MaterialTheme.typography.titleLarge.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary,
+                                    padding = PaddingValues(
+                                        horizontal = defaultHorizontalPadding,
+                                        vertical = 12.dp,
                                     ),
-                                    inactive = MaterialTheme.typography.titleMedium.copy(
-                                        color = LocalContentColor.current.copy(alpha = 0.5f),
-                                    ),
-                                    spacing = 8.dp,
-                                ),
-                                padding = PaddingValues(
-                                    horizontal = defaultHorizontalPadding,
-                                    vertical = 12.dp,
-                                ),
-                            )
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(defaultHorizontalPadding + 8.dp))
+                            NowPlayingSeekBar(context, dynamicColor)
+                            Spacer(modifier = Modifier.height(defaultHorizontalPadding + 8.dp))
+                            NowPlayingTraditionalControls(context, data = data, dynamicColor = dynamicColor)
+                            Spacer(modifier = Modifier.height(defaultHorizontalPadding + 8.dp))
                         }
-                        Spacer(modifier = Modifier.height(defaultHorizontalPadding + 8.dp))
-                        NowPlayingSeekBar(context)
-                        Spacer(modifier = Modifier.height(defaultHorizontalPadding + 8.dp))
-                        NowPlayingTraditionalControls(context, data = data)
-                        Spacer(modifier = Modifier.height(defaultHorizontalPadding + 8.dp))
                     }
 
                     else -> NothingPlaying(context)
