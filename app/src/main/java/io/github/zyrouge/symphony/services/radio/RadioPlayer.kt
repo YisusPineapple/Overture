@@ -1,10 +1,14 @@
 package io.github.zyrouge.symphony.services.radio
 
-import android.media.MediaPlayer
-import android.media.PlaybackParams
 import android.net.Uri
+import androidx.media3.common.MediaItem
+import androidx.media3.common.PlaybackException
+import androidx.media3.common.PlaybackParameters
+import androidx.media3.common.Player
+import androidx.media3.exoplayer.ExoPlayer
 import io.github.zyrouge.symphony.Symphony
 import io.github.zyrouge.symphony.utils.Logger
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.util.Timer
 
@@ -31,8 +35,7 @@ class RadioPlayer(val symphony: Symphony, val id: String, val uri: Uri) {
         Destroyed,
     }
 
-    private val unsafeMediaPlayer: MediaPlayer
-    private val mediaPlayer: MediaPlayer? get() = if (usable) unsafeMediaPlayer else null
+    private val exoPlayer: ExoPlayer
     private var onPrepared: RadioPlayerOnPreparedListener? = null
     private var onPlaybackPosition: RadioPlayerOnPlaybackPositionListener? = null
     private var onFinish: RadioPlayerOnFinishListener? = null
@@ -53,49 +56,54 @@ class RadioPlayer(val symphony: Symphony, val id: String, val uri: Uri) {
 
     val usable get() = state == State.Prepared
     val fadePlayback get() = symphony.settings.fadePlayback.value
-    val audioSessionId get() = mediaPlayer?.audioSessionId
-    val isPlaying get() = mediaPlayer?.isPlaying == true
+    val audioSessionId get() = exoPlayer.audioSessionId
+    val isPlaying get() = exoPlayer.isPlaying
 
     val playbackPosition
-        get() = mediaPlayer?.let {
-            try {
-                PlaybackPosition(
-                    played = it.currentPosition.toLong(),
-                    total = it.duration.toLong(),
-                )
-            } catch (_: IllegalStateException) {
-                null
-            }
+        get() = try {
+            PlaybackPosition(
+                played = exoPlayer.currentPosition.coerceAtLeast(0L),
+                total = exoPlayer.duration.coerceAtLeast(0L),
+            )
+        } catch (_: Exception) {
+            null
         }
 
     init {
-        unsafeMediaPlayer = MediaPlayer().also { ump ->
-            ump.setOnPreparedListener {
-                state = State.Prepared
-                ump.playbackParams.setAudioFallbackMode(PlaybackParams.AUDIO_FALLBACK_MODE_DEFAULT)
-                createDurationTimer()
-                onPrepared?.invoke()
-            }
-            ump.setOnCompletionListener {
-                state = State.Finished
-                onFinish?.invoke()
-            }
-            ump.setOnErrorListener { _, what, extra ->
-                state = State.Destroyed
-                onError?.invoke(what, extra)
-                true
-            }
-            ump.setDataSource(symphony.applicationContext, uri)
+        exoPlayer = ExoPlayer.Builder(symphony.applicationContext).build().apply {
+            setMediaItem(MediaItem.fromUri(uri))
+            addListener(object : Player.Listener {
+                override fun onPlaybackStateChanged(playbackState: Int) {
+                    when (playbackState) {
+                        Player.STATE_READY -> {
+                            if (state != State.Prepared) {
+                                state = State.Prepared
+                                createDurationTimer()
+                                onPrepared?.invoke()
+                            }
+                        }
+                        Player.STATE_ENDED -> {
+                            state = State.Finished
+                            onFinish?.invoke()
+                        }
+                        else -> {}
+                    }
+                }
+
+                override fun onPlayerError(error: PlaybackException) {
+                    state = State.Destroyed
+                    onError?.invoke(error.errorCode, error.errorCode)
+                }
+            })
         }
     }
 
     fun prepare() {
         when (state) {
             State.Unprepared -> {
-                unsafeMediaPlayer.prepareAsync()
                 state = State.Preparing
+                exoPlayer.prepare()
             }
-
             State.Prepared -> onPrepared?.invoke()
             else -> {}
         }
@@ -106,29 +114,29 @@ class RadioPlayer(val symphony: Symphony, val id: String, val uri: Uri) {
     fun destroy() {
         state = State.Destroyed
         destroyDurationTimer()
-        symphony.groove.coroutineScope.launch {
-            unsafeMediaPlayer.stop()
-            unsafeMediaPlayer.release()
+        // ExoPlayer MUST be released on the Main thread to prevent IllegalStateException
+        symphony.groove.coroutineScope.launch(Dispatchers.Main) {
+            exoPlayer.stop()
+            exoPlayer.release()
         }
     }
 
-    fun start() = mediaPlayer?.let {
-        it.start()
+    fun start() {
+        exoPlayer.play()
         createDurationTimer()
         if (!hasPlayedOnce) {
             hasPlayedOnce = true
-            changeSpeed(speed)
-            changePitch(pitch)
+            updatePlaybackParameters()
         }
     }
 
-    fun pause() = mediaPlayer?.let {
-        it.pause()
+    fun pause() {
+        exoPlayer.pause()
         destroyDurationTimer()
     }
 
-    fun seek(to: Int) = mediaPlayer?.let {
-        it.seekTo(to)
+    fun seek(to: Int) {
+        exoPlayer.seekTo(to.toLong())
         emitPlaybackPosition()
     }
 
@@ -154,7 +162,6 @@ class RadioPlayer(val symphony: Symphony, val id: String, val uri: Uri) {
                 )
                 fader?.start()
             }
-
             else -> {
                 changeVolumeInstant(to)
                 onFinish(true)
@@ -164,44 +171,32 @@ class RadioPlayer(val symphony: Symphony, val id: String, val uri: Uri) {
 
     fun changeVolumeInstant(to: Float) {
         volume = to
-        mediaPlayer?.setVolume(to, to)
+        exoPlayer.volume = to
     }
 
     fun changeSpeed(to: Float) {
-        if (!hasPlayedOnce) {
-            speed = to
-            return
-        }
-        mediaPlayer?.let {
-            val isPlaying = it.isPlaying
-            try {
-                it.playbackParams = it.playbackParams.setSpeed(to)
-                speed = to
-            } catch (err: Exception) {
-                Logger.error("RadioPlayer", "changing speed failed", err)
-            }
-            if (!isPlaying) {
-                it.pause()
-            }
+        speed = to
+        if (hasPlayedOnce) {
+            updatePlaybackParameters()
         }
     }
 
     fun changePitch(to: Float) {
-        if (!hasPlayedOnce) {
-            pitch = to
-            return
+        pitch = to
+        if (hasPlayedOnce) {
+            updatePlaybackParameters()
         }
-        mediaPlayer?.let {
-            val isPlaying = it.isPlaying
-            try {
-                it.playbackParams = it.playbackParams.setPitch(to)
-                pitch = to
-            } catch (err: Exception) {
-                Logger.error("RadioPlayer", "changing pitch failed", err)
+    }
+
+    private fun updatePlaybackParameters() {
+        try {
+            val wasPlaying = exoPlayer.isPlaying
+            exoPlayer.playbackParameters = PlaybackParameters(speed, pitch)
+            if (!wasPlaying) {
+                exoPlayer.pause()
             }
-            if (!isPlaying) {
-                it.pause()
-            }
+        } catch (err: Exception) {
+            Logger.error("RadioPlayer", "changing playback parameters failed", err)
         }
     }
 
@@ -222,6 +217,7 @@ class RadioPlayer(val symphony: Symphony, val id: String, val uri: Uri) {
     }
 
     private fun createDurationTimer() {
+        if (playbackPositionUpdater != null) return
         playbackPositionUpdater = kotlin.concurrent.timer(period = 100L) {
             emitPlaybackPosition()
         }

@@ -133,6 +133,8 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.lifecycle.runtime)
     implementation(libs.media)
+    implementation(libs.media3.exoplayer)
+    implementation(libs.media3.session)
     implementation(libs.okhttp3)
     ksp(libs.room.compiler)
     implementation(libs.room.ktx)
