@@ -7,6 +7,8 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import androidx.room.migration.AutoMigrationSpec
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import io.github.zyrouge.symphony.Symphony
 import io.github.zyrouge.symphony.services.database.store.SongCacheStore
 import io.github.zyrouge.symphony.services.groove.Song
@@ -14,7 +16,7 @@ import io.github.zyrouge.symphony.utils.RoomConvertors
 
 @Database(
     entities = [Song::class],
-    version = 2,
+    version = 3,
     autoMigrations = [AutoMigration(1, 2, CacheDatabase.Migration1To2::class)]
 )
 @TypeConverters(RoomConvertors::class)
@@ -22,12 +24,19 @@ abstract class CacheDatabase : RoomDatabase() {
     abstract fun songs(): SongCacheStore
 
     companion object {
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE songs ADD COLUMN replayGain REAL")
+            }
+        }
+
         fun create(symphony: Symphony) = Room
             .databaseBuilder(
                 symphony.applicationContext,
                 CacheDatabase::class.java,
                 "cache"
             )
+            .addMigrations(MIGRATION_2_3)
             .build()
     }
 

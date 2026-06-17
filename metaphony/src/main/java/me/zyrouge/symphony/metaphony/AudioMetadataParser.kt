@@ -36,6 +36,11 @@ class AudioMetadataParser private constructor() {
     fun toMetadata(): AudioMetadata {
         val (discNumber, discTotal) = parseSlashedNumber(tags["DISCNUMBER"]?.firstOrNull() ?: "")
         val (trackNumber, trackTotal) = parseSlashedNumber(tags["TRACKNUMBER"]?.firstOrNull() ?: "")
+        
+        // Extract ReplayGain (usually formatted as "-3.50 dB" or "-3.50")
+        val replayGainStr = tags.entries.firstOrNull { it.key.equals("REPLAYGAIN_TRACK_GAIN", ignoreCase = true) }?.value?.firstOrNull()
+        val replayGain = replayGainStr?.replace(" dB", "", ignoreCase = true)?.trim()?.toFloatOrNull()
+
         return AudioMetadata(
             title = tags["TITLE"]?.firstOrNull(),
             album = tags["ALBUM"]?.firstOrNull(),
@@ -54,6 +59,7 @@ class AudioMetadataParser private constructor() {
             lengthInSeconds = audioProperties["LENGTH_SECONDS"],
             sampleRate = audioProperties["SAMPLE_RATE"],
             channels = audioProperties["CHANNELS"],
+            replayGain = replayGain,
             pictures = pictures,
         )
     }

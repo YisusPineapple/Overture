@@ -9,10 +9,12 @@ import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import io.github.zyrouge.symphony.Symphony
+import io.github.zyrouge.symphony.services.groove.Song
 import io.github.zyrouge.symphony.utils.Logger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.util.Timer
+import kotlin.math.pow
 
 typealias RadioPlayerOnPreparedListener = () -> Unit
 typealias RadioPlayerOnPlaybackPositionListener = (RadioPlayer.PlaybackPosition) -> Unit
@@ -20,7 +22,10 @@ typealias RadioPlayerOnFinishListener = () -> Unit
 typealias RadioPlayerOnErrorListener = (Int, Int) -> Unit
 typealias RadioPlayerOnCrossfadeTriggerListener = () -> Unit
 
-class RadioPlayer(val symphony: Symphony, val id: String, val uri: Uri) {
+class RadioPlayer(val symphony: Symphony, val song: Song) {
+    val id = song.id
+    val uri = song.uri
+
     data class PlaybackPosition(val played: Long, val total: Long) {
         val ratio: Float
             get() = (played.toFloat() / total).takeIf { it.isFinite() } ?: 0f
@@ -78,11 +83,19 @@ class RadioPlayer(val symphony: Symphony, val id: String, val uri: Uri) {
             null
         }
 
+    // PRO Audio: Calculate ReplayGain factor (Loudness Normalization)
+    private val replayGainFactor: Float = run {
+        if (symphony.settings.enableReplayGain.value) {
+            val gainDb = song.replayGain ?: 0f
+            // Formula: 10^(dB / 20). Coerced to prevent extreme clipping or muting.
+            10f.pow(gainDb / 20f).coerceIn(0.1f, 3.0f)
+        } else {
+            1f
+        }
+    }
+
     init {
         exoPlayer = ExoPlayer.Builder(symphony.applicationContext).build().apply {
-            // Overture: We explicitly disable skipSilenceEnabled. 
-            // ExoPlayer's default silence skipper is too aggressive (cuts >100ms) 
-            // and destroys the artistic intent of musical pauses.
             skipSilenceEnabled = false 
             
             setMediaItem(MediaItem.fromUri(uri))
@@ -194,7 +207,8 @@ class RadioPlayer(val symphony: Symphony, val id: String, val uri: Uri) {
         symphony.groove.coroutineScope.launch(Dispatchers.Main) {
             try {
                 if (state != State.Destroyed) {
-                    exoPlayer.volume = to
+                    // Apply ReplayGain factor to the final volume output
+                    exoPlayer.volume = to * replayGainFactor
                 }
             } catch (_: Exception) {}
         }

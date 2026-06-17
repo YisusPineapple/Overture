@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.Headset
 import androidx.compose.material.icons.filled.HeadsetOff
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -54,6 +55,7 @@ fun PlayerSettingsView(context: ViewContext) {
     val seekBackDuration by context.symphony.settings.seekBackDuration.flow.collectAsState()
     val seekForwardDuration by context.symphony.settings.seekForwardDuration.flow.collectAsState()
     val gaplessPlayback by context.symphony.settings.gaplessPlayback.flow.collectAsState()
+    val enableReplayGain by context.symphony.settings.enableReplayGain.flow.collectAsState()
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -129,6 +131,19 @@ fun PlayerSettingsView(context: ViewContext) {
                                 context.symphony.settings.fadePlaybackDuration.defaultValue,
                             )
                         },
+                    )
+                    HorizontalDivider()
+                    SettingsSwitchTile(
+                        icon = {
+                            Icon(Icons.Filled.VolumeUp, null)
+                        },
+                        title = {
+                            Text(context.symphony.t.EnableReplayGain)
+                        },
+                        value = enableReplayGain,
+                        onChange = { value ->
+                            context.symphony.settings.enableReplayGain.setValue(value)
+                        }
                     )
                     HorizontalDivider()
                     SettingsSwitchTile(

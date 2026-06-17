@@ -20,6 +20,7 @@ data class AudioMetadata(
     val lengthInSeconds: Int?,
     val sampleRate: Int?,
     val channels: Int?,
+    val replayGain: Float?,
     val pictures: List<Picture>,
 ) {
     data class Picture(val pictureType: String, val mimeType: String, val data: ByteArray)

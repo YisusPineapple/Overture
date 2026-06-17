@@ -52,7 +52,6 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
     private val focus = RadioFocus(symphony)
     private val nativeReceiver = RadioNativeReceiver(symphony)
     
-    // Dual-Player Architecture for PRO DJ-Style Crossfade
     private var player: RadioPlayer? = null
     private var fadingPlayer: RadioPlayer? = null
     private var nextPlayer: RadioPlayer? = null
@@ -106,12 +105,10 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
         try {
             queue.currentSongIndex = options.index
             
-            // Intelligent Crossfade Logic
             val prevPlayer = player
             if (prevPlayer != null && prevPlayer.isPlaying && symphony.settings.fadePlayback.value) {
-                fadingPlayer?.destroy() // Clean up any stuck fading player
+                fadingPlayer?.destroy()
                 fadingPlayer = prevPlayer
-                // Disconnect listeners so the fading player doesn't update the UI anymore
                 fadingPlayer?.setOnPlaybackPositionListener(null)
                 fadingPlayer?.setOnFinishListener(null)
                 fadingPlayer?.setOnCrossfadeTriggerListener(null)
@@ -131,7 +128,7 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
                         false
                     }
                 }
-            } ?: RadioPlayer(symphony, song.id, song.uri)
+            } ?: RadioPlayer(symphony, song)
             nextPlayer = null
             
             player!!.setOnPreparedListener {
@@ -154,7 +151,6 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
                 if (!pauseOnCurrentSongEnd) {
                     val (nextSongIndex, autostart) = getNextSong(SongFinishSource.Finish)
                     if (autostart) {
-                        // Trigger the next song early to overlap with the current fading song
                         play(PlayOptions(index = nextSongIndex, autostart = true))
                     }
                 }
@@ -194,7 +190,7 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
         }
         try {
             nextPlayer?.destroy()
-            nextPlayer = RadioPlayer(symphony, song.id, song.uri).also {
+            nextPlayer = RadioPlayer(symphony, song).also {
                 it.prepare()
             }
         } catch (err: Exception) {
@@ -236,7 +232,6 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
     fun pause() = pause {}
 
     private fun pause(forceFade: Boolean = false, onFinish: () -> Unit) {
-        // Stop the fading player immediately to avoid cacophony
         fadingPlayer?.destroy()
         fadingPlayer = null
         
