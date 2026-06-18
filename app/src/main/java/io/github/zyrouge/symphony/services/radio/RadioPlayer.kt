@@ -22,6 +22,7 @@ typealias RadioPlayerOnFinishListener = () -> Unit
 typealias RadioPlayerOnErrorListener = (Int, Int) -> Unit
 typealias RadioPlayerOnCrossfadeTriggerListener = () -> Unit
 
+@OptIn(UnstableApi::class)
 class RadioPlayer(val symphony: Symphony, val song: Song) {
     val id = song.id
     val uri = song.uri
@@ -68,7 +69,6 @@ class RadioPlayer(val symphony: Symphony, val song: Song) {
     val usable get() = state == State.Prepared
     val fadePlayback get() = symphony.settings.fadePlayback.value
     
-    @get:OptIn(UnstableApi::class)
     val audioSessionId get() = exoPlayer.audioSessionId
     
     val isPlaying get() = exoPlayer.isPlaying
@@ -92,7 +92,6 @@ class RadioPlayer(val symphony: Symphony, val song: Song) {
         }
     }
 
-    @OptIn(UnstableApi::class)
     init {
         exoPlayer = ExoPlayer.Builder(symphony.applicationContext).build().apply {
             skipSilenceEnabled = false 
