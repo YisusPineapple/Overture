@@ -83,17 +83,16 @@ class RadioPlayer(val symphony: Symphony, val song: Song) {
             null
         }
 
-    // PRO Audio: Calculate ReplayGain factor (Loudness Normalization)
     private val replayGainFactor: Float = run {
         if (symphony.settings.enableReplayGain.value) {
             val gainDb = song.replayGain ?: 0f
-            // Formula: 10^(dB / 20). Coerced to prevent extreme clipping or muting.
             10f.pow(gainDb / 20f).coerceIn(0.1f, 3.0f)
         } else {
             1f
         }
     }
 
+    @OptIn(UnstableApi::class)
     init {
         exoPlayer = ExoPlayer.Builder(symphony.applicationContext).build().apply {
             skipSilenceEnabled = false 
@@ -207,7 +206,6 @@ class RadioPlayer(val symphony: Symphony, val song: Song) {
         symphony.groove.coroutineScope.launch(Dispatchers.Main) {
             try {
                 if (state != State.Destroyed) {
-                    // Apply ReplayGain factor to the final volume output
                     exoPlayer.volume = to * replayGainFactor
                 }
             } catch (_: Exception) {}
