@@ -29,6 +29,7 @@ class RadioSession(val symphony: Symphony) {
         val artworkBitmap: Bitmap,
         val playbackPosition: RadioPlayer.PlaybackPosition,
         val isPlaying: Boolean,
+        val isFavorite: Boolean,
     )
 
     internal val mediaSession = MediaSessionCompat(symphony.applicationContext, MEDIA_SESSION_ID)
@@ -225,7 +226,6 @@ class RadioSession(val symphony: Symphony) {
         val artworkUri = symphony.groove.song.getArtworkUri(song.id)
         val artworkBitmap = artworkCacher.getArtwork(song)
         
-        // Fix: Convert HARDWARE bitmap to SOFTWARE to allow pixel access by Palette
         val safeBitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && artworkBitmap.config == Bitmap.Config.HARDWARE) {
             artworkBitmap.copy(Bitmap.Config.ARGB_8888, false)
         } else {
@@ -239,13 +239,16 @@ class RadioSession(val symphony: Symphony) {
         var playbackPosition = RadioPlayer.PlaybackPosition(played = 0L, total = song.duration)
         var isPlaying = false
         
-        // Fix: ExoPlayer MUST be accessed from the Main thread
         withContext(Dispatchers.Main) {
             playbackPosition = symphony.radio.currentPlaybackPosition
                 ?: RadioPlayer.PlaybackPosition(played = 0L, total = song.duration)
             isPlaying = symphony.radio.isPlaying
         }
         
+        val isFavorite = symphony.groove.playlist.getFavorites()
+            .getSongIds(symphony)
+            .contains(song.id)
+
         if (currentSongId != song.id) {
             return
         }
@@ -255,6 +258,7 @@ class RadioSession(val symphony: Symphony) {
             artworkBitmap = artworkBitmap,
             playbackPosition = playbackPosition,
             isPlaying = isPlaying,
+            isFavorite = isFavorite,
         )
         updateSession(req)
         notification.update(req)
@@ -285,6 +289,19 @@ class RadioSession(val symphony: Symphony) {
                     build()
                 }
             )
+            
+            val favAction = PlaybackStateCompat.CustomAction.Builder(
+                ACTION_FAVORITE,
+                symphony.t.Favorite,
+                if (req.isFavorite) R.drawable.ic_heart_filled else R.drawable.ic_heart
+            ).build()
+
+            val closeAction = PlaybackStateCompat.CustomAction.Builder(
+                ACTION_STOP,
+                symphony.t.Stop,
+                R.drawable.material_icon_close
+            ).build()
+
             setPlaybackState(
                 PlaybackStateCompat.Builder().run {
                     setState(
@@ -295,6 +312,8 @@ class RadioSession(val symphony: Symphony) {
                         req.playbackPosition.played.toLong(),
                         1f
                     )
+                    addCustomAction(favAction)
+                    addCustomAction(closeAction)
                     setActions(
                         PlaybackStateCompat.ACTION_PLAY
                                 or PlaybackStateCompat.ACTION_PAUSE

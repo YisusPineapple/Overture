@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
@@ -47,10 +49,9 @@ fun NowPlayingBody(context: ViewContext, data: NowPlayingData) {
         val orientation = ScreenOrientation.fromConstraints(this@BoxWithConstraints)
         val glassOverlayColor = MaterialTheme.colorScheme.background.copy(alpha = 0.75f)
 
-        // M3E Dynamic Ambient Background (Liquid Glass)
         Crossfade(
             targetState = data.song,
-            animationSpec = tween(1000), // Smooth 1-second crossfade between songs
+            animationSpec = tween(1000),
             label = "AmbientBackground"
         ) { song ->
             AsyncImage(
@@ -59,11 +60,9 @@ fun NowPlayingBody(context: ViewContext, data: NowPlayingData) {
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxSize()
-                    .blur(80.dp) // Hardware accelerated blur (API 31+)
+                    .blur(80.dp)
                     .drawWithContent {
                         drawContent()
-                        // Liquid Glass overlay: adapts to Light/Dark mode automatically
-                        // Zero-cost fallback for Android 9-11
                         drawRect(glassOverlayColor)
                     }
             )
@@ -71,7 +70,7 @@ fun NowPlayingBody(context: ViewContext, data: NowPlayingData) {
 
         Scaffold(
             modifier = Modifier.fillMaxSize(),
-            containerColor = Color.Transparent, // Crucial: Lets the ambient background shine through
+            containerColor = Color.Transparent,
             topBar = {
                 if (orientation.isPortrait) {
                     NowPlayingAppBar(context)
@@ -109,10 +108,9 @@ fun NowPlayingBody(context: ViewContext, data: NowPlayingData) {
                             ) {
                                 NowPlayingBodyCover(context, data, states, orientation)
                             }
-                            Box(modifier = Modifier.weight(1f)) {
-                                Column {
+                            Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                                     NowPlayingLandscapeAppBar(context)
-                                    Box(modifier = Modifier.weight(1f))
                                     NowPlayingBodyContent(context, data)
                                     NowPlayingBodyBottomBar(context, data, states)
                                 }

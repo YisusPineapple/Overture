@@ -23,6 +23,7 @@ typealias RadioPlayerOnPlaybackPositionListener = (RadioPlayer.PlaybackPosition)
 typealias RadioPlayerOnFinishListener = () -> Unit
 typealias RadioPlayerOnErrorListener = (Int, Int) -> Unit
 typealias RadioPlayerOnCrossfadeTriggerListener = () -> Unit
+typealias RadioPlayerOnIsPlayingChangedListener = (Boolean) -> Unit
 
 @OptIn(UnstableApi::class)
 class RadioPlayer(val symphony: Symphony, val song: Song) {
@@ -52,6 +53,7 @@ class RadioPlayer(val symphony: Symphony, val song: Song) {
     private var onFinish: RadioPlayerOnFinishListener? = null
     private var onError: RadioPlayerOnErrorListener? = null
     private var onCrossfadeTrigger: RadioPlayerOnCrossfadeTriggerListener? = null
+    private var onIsPlayingChanged: RadioPlayerOnIsPlayingChangedListener? = null
     private var fader: RadioEffects.Fader? = null
     private var playbackPositionUpdater: Job? = null
 
@@ -115,6 +117,10 @@ class RadioPlayer(val symphony: Symphony, val song: Song) {
                         }
                         else -> {}
                     }
+                }
+
+                override fun onIsPlayingChanged(isPlaying: Boolean) {
+                    onIsPlayingChanged?.invoke(isPlaying)
                 }
 
                 override fun onPlayerError(error: PlaybackException) {
@@ -186,20 +192,20 @@ class RadioPlayer(val symphony: Symphony, val song: Song) {
 
     fun changeVolume(
         to: Float,
-        forceFade: Boolean = false,
+        durationMs: Int,
+        curve: RadioEffects.FadeCurve = RadioEffects.FadeCurve.LINEAR,
         onFinish: (Boolean) -> Unit,
     ) {
         fader?.stop()
         when {
             to == volume -> onFinish(true)
-            forceFade || fadePlayback -> {
-                val duration = (symphony.settings.fadePlaybackDuration.value * 1000).toInt()
+            durationMs > 0 -> {
                 fader = RadioEffects.Fader(
                     RadioEffects.Fader.Options(
                         from = volume, 
                         to = to, 
-                        duration = duration,
-                        curve = RadioEffects.FadeCurve.EQUAL_POWER
+                        duration = durationMs,
+                        curve = curve
                     ),
                     onUpdate = {
                         changeVolumeInstant(it)
@@ -275,6 +281,10 @@ class RadioPlayer(val symphony: Symphony, val song: Song) {
     
     fun setOnCrossfadeTriggerListener(listener: RadioPlayerOnCrossfadeTriggerListener?) {
         onCrossfadeTrigger = listener
+    }
+
+    fun setOnIsPlayingChangedListener(listener: RadioPlayerOnIsPlayingChangedListener?) {
+        onIsPlayingChanged = listener
     }
 
     private fun createDurationTimer() {

@@ -113,14 +113,24 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
         }
         
         try {
+            // Anti-Spam & Crossfade Logic
             val prevPlayer = player
+            fadingPlayer?.destroy() // Kill any existing fading player immediately
+            fadingPlayer = null
+
             if (prevPlayer != null && prevPlayer.isPlaying && symphony.settings.fadePlayback.value) {
-                fadingPlayer?.destroy()
                 fadingPlayer = prevPlayer
                 fadingPlayer?.setOnPlaybackPositionListener(null)
                 fadingPlayer?.setOnFinishListener(null)
                 fadingPlayer?.setOnCrossfadeTriggerListener(null)
-                fadingPlayer?.changeVolume(RadioPlayer.MIN_VOLUME, forceFade = true) {
+                fadingPlayer?.setOnIsPlayingChangedListener(null)
+                
+                val fadeDuration = (symphony.settings.fadePlaybackDuration.value * 1000).toInt()
+                fadingPlayer?.changeVolume(
+                    to = RadioPlayer.MIN_VOLUME, 
+                    durationMs = fadeDuration, 
+                    curve = RadioEffects.FadeCurve.EQUAL_POWER
+                ) {
                     fadingPlayer?.destroy()
                     if (fadingPlayer == prevPlayer) fadingPlayer = null
                 }
@@ -154,6 +164,13 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
             }
             player!!.setOnPlaybackPositionListener {
                 onPlaybackPositionUpdate.dispatch(it)
+            }
+            player!!.setOnIsPlayingChangedListener { isPlaying ->
+                if (isPlaying) {
+                    onUpdate.dispatch(if (!player!!.hasPlayedOnce) Events.Player.Started else Events.Player.Resumed)
+                } else {
+                    onUpdate.dispatch(Events.Player.Paused)
+                }
             }
             player!!.setOnCrossfadeTriggerListener {
                 if (!pauseOnCurrentSongEnd) {
@@ -230,17 +247,11 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
             }
             if (it.fadePlayback) {
                 it.changeVolumeInstant(RadioPlayer.MIN_VOLUME)
-                it.changeVolume(RadioPlayer.MAX_VOLUME, forceFade = true) {}
+                it.changeVolume(RadioPlayer.MAX_VOLUME, durationMs = 300) {}
             } else {
                 it.changeVolumeInstant(RadioPlayer.MAX_VOLUME)
             }
             it.start()
-            onUpdate.dispatch(
-                when {
-                    !it.hasPlayedOnce -> Events.Player.Started
-                    else -> Events.Player.Resumed
-                }
-            )
         }
     }
 
@@ -255,10 +266,13 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
                 return@let
             }
             isPauseRequested = true
-            onUpdate.dispatch(Events.Player.Paused)
+            
+            val duration = if (forceFade) (symphony.settings.fadePlaybackDuration.value * 1000).toInt() else 300
+            
             it.changeVolume(
                 to = RadioPlayer.MIN_VOLUME,
-                forceFade = forceFade,
+                durationMs = duration,
+                curve = RadioEffects.FadeCurve.LINEAR
             ) { _ ->
                 it.pause()
                 focus.abandonFocus()
@@ -274,7 +288,6 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
         player?.let {
             isPauseRequested = true
             it.pause()
-            onUpdate.dispatch(Events.Player.Paused)
         }
     }
 
@@ -303,13 +316,13 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
 
     fun duck() {
         player?.let {
-            it.changeVolume(RadioPlayer.DUCK_VOLUME) {}
+            it.changeVolume(RadioPlayer.DUCK_VOLUME, durationMs = 300) {}
         }
     }
 
     fun restoreVolume() {
         player?.let {
-            it.changeVolume(RadioPlayer.MAX_VOLUME) {}
+            it.changeVolume(RadioPlayer.MAX_VOLUME, durationMs = 300) {}
         }
     }
 
@@ -384,7 +397,8 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
             player = null
             p.setOnPlaybackPositionListener(null)
             p.setOnCrossfadeTriggerListener(null)
-            p.changeVolume(RadioPlayer.MIN_VOLUME) { _ ->
+            p.setOnIsPlayingChangedListener(null)
+            p.changeVolume(RadioPlayer.MIN_VOLUME, durationMs = 0) { _ ->
                 p.stop()
                 onUpdate.dispatch(Events.Player.Stopped)
             }

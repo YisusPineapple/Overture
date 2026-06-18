@@ -29,14 +29,11 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -44,8 +41,10 @@ import androidx.compose.ui.text.lerp
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.zyrouge.symphony.ui.helpers.TransitionDurations
+import io.github.zyrouge.symphony.ui.helpers.ViewContext
 import io.github.zyrouge.symphony.utils.TimedContent
-import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlin.math.max
 
@@ -74,15 +73,14 @@ data class TimedContentTextStyle(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TimedContentText(
+    context: ViewContext,
     content: TimedContent,
-    duration: Long,
     padding: PaddingValues,
     style: TimedContentTextStyle,
     onSeek: (Int) -> Unit,
 ) {
     val coroutineScope = rememberCoroutineScope()
     val scrollState = rememberLazyListState()
-    val currentPosition by rememberUpdatedState(duration)
     val visibleRange by remember {
         derivedStateOf {
             val start = scrollState.firstVisibleItemIndex
@@ -92,34 +90,23 @@ fun TimedContentText(
     }
     var activeIndex by remember { mutableIntStateOf(-1) }
 
-    LaunchedEffect(LocalContext.current) {
-        snapshotFlow { currentPosition }
-            .distinctUntilChanged()
-            .collect {
-                if (!content.isSynced) {
-                    return@collect
-                }
-                
-                val nActiveIndex = content.pairs.indexOfLast { x ->
-                    x.first <= currentPosition
-                }
-                if (nActiveIndex == -1 || activeIndex == nActiveIndex) {
-                    return@collect
-                }
-                activeIndex = nActiveIndex
-                
-                // Overture: Check if the new active line is already on-screen.
-                // If it is visible, completely bypass scroll animations to avoid stutters.
-                val isLineVisible = activeIndex in visibleRange.first..visibleRange.second
-                if (isLineVisible && !scrollState.isScrollInProgress) {
-                    return@collect
-                }
-                
-                coroutineScope.launch {
-                    val scrollIndex = calculateRelaxedScrollIndex(nActiveIndex, visibleRange)
-                    scrollState.animateScrollToItem(scrollIndex)
+    // Overture: Decoupled lyrics sync from UI recomposition
+    LaunchedEffect(content) {
+        while (isActive) {
+            val currentPosition = context.symphony.radio.currentPlaybackPosition?.played ?: 0L
+            if (content.isSynced) {
+                val nActiveIndex = content.pairs.indexOfLast { it.first <= currentPosition }
+                if (nActiveIndex != -1 && activeIndex != nActiveIndex) {
+                    activeIndex = nActiveIndex
+                    val isLineVisible = activeIndex in visibleRange.first..visibleRange.second
+                    if (!isLineVisible || !scrollState.isScrollInProgress) {
+                        val scrollIndex = calculateRelaxedScrollIndex(nActiveIndex, visibleRange)
+                        scrollState.animateScrollToItem(scrollIndex)
+                    }
                 }
             }
+            delay(100)
+        }
     }
 
     LazyColumn(

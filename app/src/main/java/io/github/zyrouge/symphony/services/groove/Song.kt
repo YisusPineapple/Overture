@@ -128,7 +128,8 @@ data class Song(
                 ?.use { AudioMetadataParser.parse(file.name, it.detachFd()) }
                 ?: return null
             val id = symphony.groove.song.idGenerator.next()
-            val coverFile = metadata.pictures.firstOrNull()?.let {
+            
+            var coverFile = metadata.pictures.firstOrNull()?.let {
                 val extension = when (it.mimeType) {
                     "image/jpg", "image/jpeg" -> "jpg"
                     "image/png" -> "png"
@@ -152,6 +153,28 @@ data class Song(
                 }
                 name
             }
+
+            // Fallback: If Metaphony fails to extract the picture, try Android's native retriever
+            if (coverFile == null) {
+                val retriever = MediaMetadataRetriever()
+                try {
+                    retriever.setDataSource(symphony.applicationContext, file.uri)
+                    coverFile = retriever.embeddedPicture?.let {
+                        val bitmap = BitmapFactory.decodeByteArray(it, 0, it.size)
+                        val quality = symphony.settings.artworkQuality.value
+                        val name = "$id.jpg"
+                        FileOutputStream(symphony.database.artworkCache.get(name)).use { writer ->
+                            ImagePreserver
+                                .resize(bitmap, quality)
+                                .compress(Bitmap.CompressFormat.JPEG, 100, writer)
+                        }
+                        name
+                    }
+                } catch (_: Exception) {} finally {
+                    retriever.release()
+                }
+            }
+
             metadata.lyrics?.let {
                 symphony.database.lyricsCache.put(id, it)
             }

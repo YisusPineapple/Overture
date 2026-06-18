@@ -1,7 +1,6 @@
 package io.github.zyrouge.symphony.ui.view.nowPlaying
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -38,8 +37,6 @@ import io.github.zyrouge.symphony.ui.components.LyricsText
 import io.github.zyrouge.symphony.ui.components.TimedContentTextStyle
 import io.github.zyrouge.symphony.ui.components.swipeable
 import io.github.zyrouge.symphony.ui.helpers.FadeTransition
-import io.github.zyrouge.symphony.ui.helpers.LocalAnimatedContentScope
-import io.github.zyrouge.symphony.ui.helpers.LocalSharedTransitionScope
 import io.github.zyrouge.symphony.ui.helpers.ScreenOrientation
 import io.github.zyrouge.symphony.ui.helpers.ViewContext
 import io.github.zyrouge.symphony.ui.view.AlbumViewRoute
@@ -110,12 +107,8 @@ private fun NowPlayingBodyCoverLyrics(context: ViewContext, orientation: ScreenO
     }
 }
 
-@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 private fun NowPlayingBodyCoverArtwork(context: ViewContext, song: Song, isPlaying: Boolean) {
-    val sharedTransitionScope = LocalSharedTransitionScope.current
-    val animatedVisibilityScope = LocalAnimatedContentScope.current
-
     BoxWithConstraints {
         val dimension = min(this@BoxWithConstraints.maxHeight, this@BoxWithConstraints.maxWidth)
 
@@ -144,16 +137,6 @@ private fun NowPlayingBodyCoverArtwork(context: ViewContext, song: Song, isPlayi
                 filterQuality = FilterQuality.High,
                 modifier = Modifier
                     .fillMaxSize()
-                    .then(
-                        if (sharedTransitionScope != null && animatedVisibilityScope != null) {
-                            with(sharedTransitionScope) {
-                                Modifier.sharedElement(
-                                    state = rememberSharedContentState(key = "artwork-${targetStateSong.id}"),
-                                    animatedVisibilityScope = animatedVisibilityScope,
-                                )
-                            }
-                        } else Modifier
-                    )
                     .graphicsLayer {
                         scaleX = artworkScale
                         scaleY = artworkScale
