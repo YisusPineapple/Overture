@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.PhotoSizeSelectLarge
 import androidx.compose.material.icons.filled.TextFormat
 import androidx.compose.material.icons.filled.TextIncrease
+import androidx.compose.material.icons.filled.ViewDay
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -28,6 +29,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import io.github.zyrouge.symphony.services.BottomBarAppearance
 import io.github.zyrouge.symphony.services.i18n.CommonTranslation
 import io.github.zyrouge.symphony.ui.components.IconButtonPlaceholder
 import io.github.zyrouge.symphony.ui.components.TopAppBarMinimalTitle
@@ -63,6 +65,7 @@ fun AppearanceSettingsView(context: ViewContext) {
     val primaryColor by context.symphony.settings.primaryColor.flow.collectAsState()
     val fontScale by context.symphony.settings.fontScale.flow.collectAsState()
     val contentScale by context.symphony.settings.contentScale.flow.collectAsState()
+    val bottomBarAppearance by context.symphony.settings.bottomBarAppearance.flow.collectAsState()
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -199,6 +202,23 @@ fun AppearanceSettingsView(context: ViewContext) {
                         ),
                         onChange = { value ->
                             context.symphony.settings.themeMode.setValue(value)
+                        }
+                    )
+                    HorizontalDivider()
+                    SettingsOptionTile(
+                        icon = {
+                            Icon(Icons.Filled.ViewDay, null)
+                        },
+                        title = {
+                            Text(context.symphony.t.BottomBarAppearance)
+                        },
+                        value = bottomBarAppearance,
+                        values = mapOf(
+                            BottomBarAppearance.LiquidGlass to context.symphony.t.LiquidGlass,
+                            BottomBarAppearance.Solid to context.symphony.t.Solid,
+                        ),
+                        onChange = { value ->
+                            context.symphony.settings.bottomBarAppearance.setValue(value)
                         }
                     )
                     HorizontalDivider()

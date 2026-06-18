@@ -765,3 +765,12 @@ name = "MinSongDurationFilter"
 
 [[keys]]
 name = "EnableReplayGain"
+
+[[keys]]
+name = "BottomBarAppearance"
+
+[[keys]]
+name = "LiquidGlass"
+
+[[keys]]
+name = "Solid"

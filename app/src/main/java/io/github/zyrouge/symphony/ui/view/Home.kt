@@ -76,9 +76,10 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import io.github.zyrouge.symphony.services.BottomBarAppearance
 import io.github.zyrouge.symphony.services.groove.Groove
+import io.github.zyrouge.symphony.ui.components.AnimatedNowPlayingBottomBar
 import io.github.zyrouge.symphony.ui.components.IntroductoryDialog
-import io.github.zyrouge.symphony.ui.components.NowPlayingBottomBar
 import io.github.zyrouge.symphony.ui.components.TopAppBarMinimalTitle
 import io.github.zyrouge.symphony.ui.components.swipeable
 import io.github.zyrouge.symphony.ui.helpers.ScaleTransition
@@ -180,6 +181,12 @@ fun HomeView(context: ViewContext) {
     var showOptionsDropdown by remember { mutableStateOf(false) }
     var showTabsSheet by remember { mutableStateOf(false) }
 
+    val appearance by context.symphony.settings.bottomBarAppearance.flow.collectAsState()
+    val pillBackground = when (appearance) {
+        BottomBarAppearance.LiquidGlass -> MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
+        BottomBarAppearance.Solid -> MaterialTheme.colorScheme.surface
+    }
+
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
@@ -260,17 +267,14 @@ fun HomeView(context: ViewContext) {
                 }
             )
         },
-        // M3E: Removed standard bottomBar to create a floating overlay
         content = { contentPadding ->
             Box(modifier = Modifier.fillMaxSize()) {
-                // Main Content
                 AnimatedContent(
                     label = "home-content",
                     targetState = currentTab,
                     modifier = Modifier
                         .fillMaxSize()
-                        // Add extra bottom padding so content isn't hidden behind the floating bar
-                        .padding(top = contentPadding.calculateTopPadding(), bottom = 140.dp),
+                        .padding(top = contentPadding.calculateTopPadding()), // Overture: No bottom padding here!
                     transitionSpec = {
                         SlideTransition.slideUp.enterTransition()
                             .togetherWith(ScaleTransition.scaleDown.exitTransition())
@@ -290,20 +294,19 @@ fun HomeView(context: ViewContext) {
                     }
                 }
 
-                // M3E: Floating Liquid Glass Bottom Bar (Namida Style)
                 Column(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
-                        .padding(horizontal = 16.dp, vertical = 24.dp) // Floating effect
-                        .shadow(16.dp, RoundedCornerShape(32.dp)) // Deep shadow
-                        .clip(RoundedCornerShape(32.dp)) // Pill shape
-                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)) // Liquid Glass
+                        .padding(horizontal = 16.dp, vertical = 24.dp)
+                        .shadow(16.dp, RoundedCornerShape(32.dp))
+                        .clip(RoundedCornerShape(32.dp))
+                        .background(pillBackground)
                 ) {
-                    NowPlayingBottomBar(context, false)
+                    AnimatedNowPlayingBottomBar(context, insetPadding = false, isHome = true)
                     NavigationBar(
-                        containerColor = Color.Transparent, // Transparent to let the glass show
-                        tonalElevation = 0.dp, // Remove M3 tonal tint
-                        windowInsets = WindowInsets(0, 0, 0, 0), // Remove default bottom padding inside the pill
+                        containerColor = Color.Transparent,
+                        tonalElevation = 0.dp,
+                        windowInsets = WindowInsets(0, 0, 0, 0),
                         modifier = Modifier
                             .pointerInput(Unit) {
                                 detectTapGestures {

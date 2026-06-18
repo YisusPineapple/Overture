@@ -26,6 +26,11 @@ import kotlinx.coroutines.flow.update
 import kotlin.enums.EnumEntries
 import kotlin.enums.enumEntries
 
+enum class BottomBarAppearance {
+    LiquidGlass,
+    Solid
+}
+
 class Settings(private val symphony: Symphony) {
     abstract class Entry<T>(val key: String) {
         private val mutableFlow by lazy {
@@ -123,6 +128,7 @@ class Settings(private val symphony: Symphony) {
     val themeMode = EnumEntry("theme_mode", enumEntries<ThemeMode>(), ThemeMode.SYSTEM)
     val language = NullableStringEntry("language")
     val useMaterialYou = BooleanEntry("material_you", true)
+    val bottomBarAppearance = EnumEntry("bottom_bar_appearance", enumEntries<BottomBarAppearance>(), BottomBarAppearance.LiquidGlass)
     val lastUsedSongsSortBy = EnumEntry(
         "last_used_song_sort_by",
         enumEntries<SongRepository.SortBy>(),
