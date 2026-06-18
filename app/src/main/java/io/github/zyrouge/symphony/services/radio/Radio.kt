@@ -96,15 +96,22 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
     )
 
     fun play(options: PlayOptions) {
-        val song = queue.getSongIdAt(options.index)?.let { symphony.groove.song.get(it) }
-        if (song == null) {
+        if (!queue.hasSongAt(options.index)) {
             stopCurrentSong()
             onSongFinish(SongFinishSource.Exception)
             return
         }
+        
+        queue.currentSongIndex = options.index
+        val songId = queue.getSongIdAt(options.index)
+        val song = songId?.let { symphony.groove.song.get(it) }
+        
+        if (song == null) {
+            queue.remove(options.index, forceAutostart = options.autostart)
+            return
+        }
+        
         try {
-            queue.currentSongIndex = options.index
-            
             val prevPlayer = player
             if (prevPlayer != null && prevPlayer.isPlaying && symphony.settings.fadePlayback.value) {
                 fadingPlayer?.destroy()
@@ -163,8 +170,12 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
                     "Radio",
                     "skipping song ${queue.currentSongId} (${queue.currentSongIndex}) due to $what + $extra"
                 )
-                queue.remove(queue.currentSongIndex)
-                onSongFinish(SongFinishSource.Exception)
+                val failedIndex = queue.currentSongIndex
+                if (queue.hasSongAt(failedIndex)) {
+                    queue.remove(failedIndex, forceAutostart = true)
+                } else {
+                    stopCurrentSong()
+                }
             }
             player!!.prepare()
             prepareNextPlayer()
@@ -175,7 +186,10 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
                 "skipping song ${queue.currentSongId} (${queue.currentSongIndex})",
                 err,
             )
-            queue.remove(queue.currentSongIndex)
+            val failedIndex = queue.currentSongIndex
+            if (queue.hasSongAt(failedIndex)) {
+                queue.remove(failedIndex, forceAutostart = options.autostart)
+            }
         }
     }
 

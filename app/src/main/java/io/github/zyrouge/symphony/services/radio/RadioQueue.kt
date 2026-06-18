@@ -79,12 +79,21 @@ class RadioQueue(private val symphony: Symphony) {
         symphony.radio.onUpdate.dispatch(Radio.Events.Queue.Modified)
     }
 
-    fun remove(index: Int) {
+    fun remove(index: Int, forceAutostart: Boolean? = null) {
+        if (!hasSongAt(index)) return
+        
         originalQueue.removeAt(index)
         currentQueue.removeAt(index)
         symphony.radio.onUpdate.dispatch(Radio.Events.Queue.Modified)
+        
         if (currentSongIndex == index) {
-            symphony.radio.play(Radio.PlayOptions(index = currentSongIndex))
+            if (currentQueue.isEmpty()) {
+                symphony.radio.stop()
+            } else {
+                val nextIndex = if (currentSongIndex >= currentQueue.size) 0 else currentSongIndex
+                val autostart = forceAutostart ?: symphony.radio.isPlaying
+                symphony.radio.play(Radio.PlayOptions(index = nextIndex, autostart = autostart))
+            }
         } else if (index < currentSongIndex) {
             currentSongIndex--
         }
@@ -93,7 +102,10 @@ class RadioQueue(private val symphony: Symphony) {
     fun remove(indices: List<Int>) {
         var deflection = 0
         var currentSongRemoved = false
-        val sortedIndices = indices.sortedDescending()
+        val sortedIndices = indices.filter { hasSongAt(it) }.sortedDescending()
+        
+        if (sortedIndices.isEmpty()) return
+        
         for (i in sortedIndices) {
             val index = i - deflection
             originalQueue.removeAt(index)
@@ -105,8 +117,15 @@ class RadioQueue(private val symphony: Symphony) {
         }
         currentSongIndex -= deflection
         symphony.radio.onUpdate.dispatch(Radio.Events.Queue.Modified)
+        
         if (currentSongRemoved) {
-            symphony.radio.play(Radio.PlayOptions(index = currentSongIndex))
+            if (currentQueue.isEmpty()) {
+                symphony.radio.stop()
+            } else {
+                val nextIndex = if (currentSongIndex >= currentQueue.size) 0 else currentSongIndex
+                val wasPlaying = symphony.radio.isPlaying
+                symphony.radio.play(Radio.PlayOptions(index = nextIndex, autostart = wasPlaying))
+            }
         }
     }
 
@@ -146,7 +165,7 @@ class RadioQueue(private val symphony: Symphony) {
             val currentSongId = getSongIdAt(currentSongIndex) ?: getSongIdAt(0)!!
             currentSongIndex = if (currentShuffleMode) {
                 val newQueue = originalQueue.toMutableList()
-                newQueue.removeAt(currentSongIndex)
+                newQueue.remove(currentSongId)
                 newQueue.shuffle()
                 newQueue.add(0, currentSongId)
                 currentQueue.clear()
@@ -155,7 +174,7 @@ class RadioQueue(private val symphony: Symphony) {
             } else {
                 currentQueue.clear()
                 currentQueue.addAll(originalQueue)
-                originalQueue.indexOfFirst { it == currentSongId }
+                originalQueue.indexOfFirst { it == currentSongId }.coerceAtLeast(0)
             }
         }
         symphony.radio.onUpdate.dispatch(Radio.Events.Queue.Modified)
