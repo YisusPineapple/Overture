@@ -3,6 +3,7 @@ package io.github.zyrouge.symphony.services.radio
 import io.github.zyrouge.symphony.Symphony
 import io.github.zyrouge.symphony.utils.Eventer
 import io.github.zyrouge.symphony.utils.Logger
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.util.Date
@@ -342,9 +343,11 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
             kotlin.concurrent.timerTask {
                 val shouldQuit = sleepTimer?.quitOnEnd ?: quitOnEnd
                 clearSleepTimer()
-                pause(forceFade = true) {
-                    if (shouldQuit) {
-                        symphony.closeApp?.invoke()
+                symphony.groove.coroutineScope.launch(Dispatchers.Main) {
+                    pause(forceFade = true) {
+                        if (shouldQuit) {
+                            symphony.closeApp?.invoke()
+                        }
                     }
                 }
             },

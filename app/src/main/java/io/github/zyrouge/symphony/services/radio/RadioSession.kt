@@ -18,7 +18,9 @@ import androidx.palette.graphics.Palette
 import io.github.zyrouge.symphony.R
 import io.github.zyrouge.symphony.Symphony
 import io.github.zyrouge.symphony.services.groove.Song
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class RadioSession(val symphony: Symphony) {
     data class UpdateRequest(
@@ -199,7 +201,7 @@ class RadioSession(val symphony: Symphony) {
             input: Unit,
         ) = Intent(AudioEffect.ACTION_DISPLAY_AUDIO_EFFECT_CONTROL_PANEL).apply {
             putExtra(AudioEffect.EXTRA_PACKAGE_NAME, symphony.applicationContext.packageName)
-            putExtra(AudioEffect.EXTRA_AUDIO_SESSION, symphony.radio.audioSessionId ?: 0)
+            putExtra(AudioEffect.EXTRA_AUDIO_SESSION, symphony.radio.audioSessionId)
             putExtra(AudioEffect.EXTRA_CONTENT_TYPE, AudioEffect.CONTENT_TYPE_MUSIC)
         }
 
@@ -223,14 +225,27 @@ class RadioSession(val symphony: Symphony) {
         val artworkUri = symphony.groove.song.getArtworkUri(song.id)
         val artworkBitmap = artworkCacher.getArtwork(song)
         
-        // M3E: Extract Dynamic Palette Color
-        val palette = Palette.from(artworkBitmap).generate()
+        // Fix: Convert HARDWARE bitmap to SOFTWARE to allow pixel access by Palette
+        val safeBitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && artworkBitmap.config == Bitmap.Config.HARDWARE) {
+            artworkBitmap.copy(Bitmap.Config.ARGB_8888, false)
+        } else {
+            artworkBitmap
+        }
+        
+        val palette = Palette.from(safeBitmap).generate()
         val dominant = palette.getVibrantColor(palette.getDominantColor(0))
         symphony.radio.observatory.setDominantColor(if (dominant != 0) dominant else null)
         
-        val playbackPosition = symphony.radio.currentPlaybackPosition
-            ?: RadioPlayer.PlaybackPosition(played = 0L, total = song.duration)
-        val isPlaying = symphony.radio.isPlaying
+        var playbackPosition = RadioPlayer.PlaybackPosition(played = 0L, total = song.duration)
+        var isPlaying = false
+        
+        // Fix: ExoPlayer MUST be accessed from the Main thread
+        withContext(Dispatchers.Main) {
+            playbackPosition = symphony.radio.currentPlaybackPosition
+                ?: RadioPlayer.PlaybackPosition(played = 0L, total = song.duration)
+            isPlaying = symphony.radio.isPlaying
+        }
+        
         if (currentSongId != song.id) {
             return
         }

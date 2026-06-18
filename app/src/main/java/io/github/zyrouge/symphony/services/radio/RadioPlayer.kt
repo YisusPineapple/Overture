@@ -12,8 +12,10 @@ import io.github.zyrouge.symphony.Symphony
 import io.github.zyrouge.symphony.services.groove.Song
 import io.github.zyrouge.symphony.utils.Logger
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import java.util.Timer
 import kotlin.math.pow
 
 typealias RadioPlayerOnPreparedListener = () -> Unit
@@ -51,7 +53,7 @@ class RadioPlayer(val symphony: Symphony, val song: Song) {
     private var onError: RadioPlayerOnErrorListener? = null
     private var onCrossfadeTrigger: RadioPlayerOnCrossfadeTriggerListener? = null
     private var fader: RadioEffects.Fader? = null
-    private var playbackPositionUpdater: Timer? = null
+    private var playbackPositionUpdater: Job? = null
 
     var state = State.Unprepared
         private set
@@ -69,9 +71,9 @@ class RadioPlayer(val symphony: Symphony, val song: Song) {
     val usable get() = state == State.Prepared
     val fadePlayback get() = symphony.settings.fadePlayback.value
     
-    val audioSessionId get() = exoPlayer.audioSessionId
+    val audioSessionId get() = try { exoPlayer.audioSessionId } catch (_: Exception) { 0 }
     
-    val isPlaying get() = exoPlayer.isPlaying
+    val isPlaying get() = try { exoPlayer.isPlaying } catch (_: Exception) { false }
 
     val playbackPosition
         get() = try {
@@ -124,13 +126,17 @@ class RadioPlayer(val symphony: Symphony, val song: Song) {
     }
 
     fun prepare() {
-        when (state) {
-            State.Unprepared -> {
-                state = State.Preparing
-                exoPlayer.prepare()
+        symphony.groove.coroutineScope.launch(Dispatchers.Main) {
+            when (state) {
+                State.Unprepared -> {
+                    state = State.Preparing
+                    try {
+                        exoPlayer.prepare()
+                    } catch (_: Exception) {}
+                }
+                State.Prepared -> onPrepared?.invoke()
+                else -> {}
             }
-            State.Prepared -> onPrepared?.invoke()
-            else -> {}
         }
     }
 
@@ -148,22 +154,34 @@ class RadioPlayer(val symphony: Symphony, val song: Song) {
     }
 
     fun start() {
-        exoPlayer.play()
-        createDurationTimer()
-        if (!hasPlayedOnce) {
-            hasPlayedOnce = true
-            updatePlaybackParameters()
+        symphony.groove.coroutineScope.launch(Dispatchers.Main) {
+            try {
+                exoPlayer.play()
+                createDurationTimer()
+                if (!hasPlayedOnce) {
+                    hasPlayedOnce = true
+                    updatePlaybackParameters()
+                }
+            } catch (_: Exception) {}
         }
     }
 
     fun pause() {
-        exoPlayer.pause()
-        destroyDurationTimer()
+        symphony.groove.coroutineScope.launch(Dispatchers.Main) {
+            try {
+                exoPlayer.pause()
+                destroyDurationTimer()
+            } catch (_: Exception) {}
+        }
     }
 
     fun seek(to: Int) {
-        exoPlayer.seekTo(to.toLong())
-        emitPlaybackPosition()
+        symphony.groove.coroutineScope.launch(Dispatchers.Main) {
+            try {
+                exoPlayer.seekTo(to.toLong())
+                emitPlaybackPosition()
+            } catch (_: Exception) {}
+        }
     }
 
     fun changeVolume(
@@ -226,14 +244,16 @@ class RadioPlayer(val symphony: Symphony, val song: Song) {
     }
 
     private fun updatePlaybackParameters() {
-        try {
-            val wasPlaying = exoPlayer.isPlaying
-            exoPlayer.playbackParameters = PlaybackParameters(speed, pitch)
-            if (!wasPlaying) {
-                exoPlayer.pause()
+        symphony.groove.coroutineScope.launch(Dispatchers.Main) {
+            try {
+                val wasPlaying = exoPlayer.isPlaying
+                exoPlayer.playbackParameters = PlaybackParameters(speed, pitch)
+                if (!wasPlaying) {
+                    exoPlayer.pause()
+                }
+            } catch (err: Exception) {
+                Logger.error("RadioPlayer", "changing playback parameters failed", err)
             }
-        } catch (err: Exception) {
-            Logger.error("RadioPlayer", "changing playback parameters failed", err)
         }
     }
 
@@ -258,9 +278,12 @@ class RadioPlayer(val symphony: Symphony, val song: Song) {
     }
 
     private fun createDurationTimer() {
-        if (playbackPositionUpdater != null) return
-        playbackPositionUpdater = kotlin.concurrent.timer(period = 100L) {
-            emitPlaybackPosition()
+        if (playbackPositionUpdater?.isActive == true) return
+        playbackPositionUpdater = symphony.groove.coroutineScope.launch(Dispatchers.Main) {
+            while (isActive) {
+                emitPlaybackPosition()
+                delay(100L)
+            }
         }
     }
 
