@@ -22,6 +22,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
@@ -47,7 +49,11 @@ fun NowPlayingBody(context: ViewContext, data: NowPlayingData) {
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val orientation = ScreenOrientation.fromConstraints(this@BoxWithConstraints)
-        val glassOverlayColor = MaterialTheme.colorScheme.background.copy(alpha = 0.75f)
+        
+        // Overture: Enhanced Ambient Background
+        // Reduced opacity to let the artwork shine through, and boosted saturation by 2x
+        val glassOverlayColor = MaterialTheme.colorScheme.background.copy(alpha = 0.45f)
+        val colorMatrix = remember { ColorMatrix().apply { setToSaturation(2f) } }
 
         Crossfade(
             targetState = data.song,
@@ -58,9 +64,10 @@ fun NowPlayingBody(context: ViewContext, data: NowPlayingData) {
                 model = song.createArtworkImageRequest(context.symphony).build(),
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
+                colorFilter = ColorFilter.colorMatrix(colorMatrix),
                 modifier = Modifier
                     .fillMaxSize()
-                    .blur(80.dp)
+                    .blur(100.dp) // Increased blur radius for smoother ambient
                     .drawWithContent {
                         drawContent()
                         drawRect(glassOverlayColor)
@@ -97,20 +104,25 @@ fun NowPlayingBody(context: ViewContext, data: NowPlayingData) {
 
                         ScreenOrientation.LANDSCAPE -> Row(
                             modifier = Modifier.fillMaxSize(),
-                            horizontalArrangement = Arrangement.SpaceAround,
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             Box(
                                 modifier = Modifier
                                     .weight(1f)
                                     .fillMaxHeight()
-                                    .padding(top = 12.dp, bottom = 20.dp),
+                                    .padding(32.dp), // More padding so artwork isn't huge
                                 contentAlignment = Alignment.Center,
                             ) {
                                 NowPlayingBodyCover(context, data, states, orientation)
                             }
-                            // Overture: Added verticalScroll to prevent controls from being cut off
-                            Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
-                                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                            Box(modifier = Modifier.weight(1.2f).fillMaxHeight()) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .verticalScroll(rememberScrollState()),
+                                    verticalArrangement = Arrangement.Center // Center controls vertically
+                                ) {
                                     NowPlayingLandscapeAppBar(context)
                                     NowPlayingBodyContent(context, data)
                                     NowPlayingBodyBottomBar(context, data, states)

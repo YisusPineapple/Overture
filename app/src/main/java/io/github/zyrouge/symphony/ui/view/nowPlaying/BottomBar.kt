@@ -4,6 +4,7 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.launch
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -80,11 +81,12 @@ fun NowPlayingBodyBottomBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(
-                    start = 8.dp,
-                    end = 8.dp,
-                    bottom = 4.dp,
+                    start = 16.dp,
+                    end = 16.dp,
+                    bottom = 12.dp,
                 ),
             verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween // Overture: Distribute evenly
         ) {
             TextButton(
                 onClick = {
@@ -94,7 +96,7 @@ fun NowPlayingBodyBottomBar(
                 Icon(
                     Icons.AutoMirrored.Filled.Sort,
                     null,
-                    modifier = Modifier.size(20.dp),
+                    modifier = Modifier.size(24.dp), // Increased size
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
@@ -105,72 +107,81 @@ fun NowPlayingBodyBottomBar(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            Spacer(modifier = Modifier.weight(1f))
-            states.showLyrics.let { showLyricsState ->
-                val showLyrics by showLyricsState.collectAsState()
+            
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                states.showLyrics.let { showLyricsState ->
+                    val showLyrics by showLyricsState.collectAsState()
 
-                IconButton(
-                    onClick = {
-                        when (lyricsLayout) {
-                            NowPlayingLyricsLayout.ReplaceArtwork -> {
-                                val nShowLyrics = !showLyricsState.value
-                                showLyricsState.value = nShowLyrics
-                                NowPlayingDefaults.showLyrics = nShowLyrics
-                            }
+                    IconButton(
+                        modifier = Modifier.size(48.dp), // Ensure touch target
+                        onClick = {
+                            when (lyricsLayout) {
+                                NowPlayingLyricsLayout.ReplaceArtwork -> {
+                                    val nShowLyrics = !showLyricsState.value
+                                    showLyricsState.value = nShowLyrics
+                                    NowPlayingDefaults.showLyrics = nShowLyrics
+                                }
 
-                            NowPlayingLyricsLayout.SeparatePage -> {
-                                context.navController.navigate(LyricsViewRoute)
+                                NowPlayingLyricsLayout.SeparatePage -> {
+                                    context.navController.navigate(LyricsViewRoute)
+                                }
                             }
                         }
+                    ) {
+                        Icon(
+                            Icons.AutoMirrored.Outlined.Article,
+                            null,
+                            modifier = Modifier.size(28.dp), // Increased icon size
+                            tint = when {
+                                showLyrics -> MaterialTheme.colorScheme.primary
+                                else -> LocalContentColor.current
+                            }
+                        )
+                    }
+                }
+                IconButton(
+                    modifier = Modifier.size(48.dp),
+                    onClick = {
+                        context.symphony.radio.queue.toggleLoopMode()
                     }
                 ) {
                     Icon(
-                        Icons.AutoMirrored.Outlined.Article,
+                        when (currentLoopMode) {
+                            RadioQueue.LoopMode.Song -> Icons.Filled.RepeatOne
+                            else -> Icons.Filled.Repeat
+                        },
                         null,
-                        tint = when {
-                            showLyrics -> MaterialTheme.colorScheme.primary
-                            else -> LocalContentColor.current
+                        modifier = Modifier.size(28.dp),
+                        tint = when (currentLoopMode) {
+                            RadioQueue.LoopMode.None -> LocalContentColor.current
+                            else -> MaterialTheme.colorScheme.primary
                         }
                     )
                 }
-            }
-            IconButton(
-                onClick = {
-                    context.symphony.radio.queue.toggleLoopMode()
-                }
-            ) {
-                Icon(
-                    when (currentLoopMode) {
-                        RadioQueue.LoopMode.Song -> Icons.Filled.RepeatOne
-                        else -> Icons.Filled.Repeat
-                    },
-                    null,
-                    tint = when (currentLoopMode) {
-                        RadioQueue.LoopMode.None -> LocalContentColor.current
-                        else -> MaterialTheme.colorScheme.primary
+                IconButton(
+                    modifier = Modifier.size(48.dp),
+                    onClick = {
+                        context.symphony.radio.queue.toggleShuffleMode()
                     }
-                )
-            }
-            IconButton(
-                onClick = {
-                    context.symphony.radio.queue.toggleShuffleMode()
+                ) {
+                    Icon(
+                        Icons.Filled.Shuffle,
+                        null,
+                        modifier = Modifier.size(28.dp),
+                        tint = when {
+                            currentShuffleMode -> MaterialTheme.colorScheme.primary
+                            else -> LocalContentColor.current
+                        },
+                    )
                 }
-            ) {
-                Icon(
-                    Icons.Filled.Shuffle,
-                    null,
-                    tint = when {
-                        currentShuffleMode -> MaterialTheme.colorScheme.primary
-                        else -> LocalContentColor.current
-                    },
-                )
-            }
-            IconButton(
-                onClick = {
-                    showExtraOptions = !showExtraOptions
+                IconButton(
+                    modifier = Modifier.size(48.dp),
+                    onClick = {
+                        showExtraOptions = !showExtraOptions
+                    }
+                ) {
+                    Icon(Icons.Outlined.MoreHoriz, null, modifier = Modifier.size(28.dp))
                 }
-            ) {
-                Icon(Icons.Outlined.MoreHoriz, null)
             }
         }
 

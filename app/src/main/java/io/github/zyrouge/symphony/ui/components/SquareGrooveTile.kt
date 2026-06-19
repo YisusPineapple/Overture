@@ -1,6 +1,7 @@
 package io.github.zyrouge.symphony.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -34,6 +35,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import io.github.zyrouge.symphony.ui.helpers.bounceScale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,11 +46,15 @@ fun SquareGrooveTile(
     onPlay: () -> Unit,
     onClick: () -> Unit,
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .wrapContentHeight(),
+            .wrapContentHeight()
+            .bounceScale(interactionSource),
         colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+        interactionSource = interactionSource,
         onClick = onClick
     ) {
         Box(modifier = Modifier.padding(12.dp)) {

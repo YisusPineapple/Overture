@@ -3,6 +3,7 @@ package io.github.zyrouge.symphony.ui.components
 import android.content.Intent
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -50,6 +51,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import io.github.zyrouge.symphony.services.groove.Song
 import io.github.zyrouge.symphony.ui.helpers.ViewContext
+import io.github.zyrouge.symphony.ui.helpers.bounceScale
 import io.github.zyrouge.symphony.ui.view.AlbumArtistViewRoute
 import io.github.zyrouge.symphony.ui.view.AlbumViewRoute
 import io.github.zyrouge.symphony.ui.view.ArtistViewRoute
@@ -77,10 +79,15 @@ fun SongCard(
     val isFavorite by remember(favoriteSongIds, song) {
         derivedStateOf { favoriteSongIds.contains(song.id) }
     }
+    
+    val interactionSource = remember { MutableInteractionSource() }
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .bounceScale(interactionSource),
         colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+        interactionSource = interactionSource,
         onClick = onClick
     ) {
         Box(modifier = Modifier.padding(12.dp, 12.dp, 4.dp, 12.dp)) {
