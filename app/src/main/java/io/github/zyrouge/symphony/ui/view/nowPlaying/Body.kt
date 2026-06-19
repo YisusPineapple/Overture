@@ -108,6 +108,7 @@ fun NowPlayingBody(context: ViewContext, data: NowPlayingData) {
                             ) {
                                 NowPlayingBodyCover(context, data, states, orientation)
                             }
+                            // Overture: Added verticalScroll to prevent controls from being cut off
                             Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
                                 Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                                     NowPlayingLandscapeAppBar(context)

@@ -154,7 +154,7 @@ data class Song(
                 name
             }
 
-            // Fallback: If Metaphony fails to extract the picture, try Android's native retriever
+            // Overture: Fallback to Android's native retriever if Metaphony fails to extract the picture
             if (coverFile == null) {
                 val retriever = MediaMetadataRetriever()
                 try {

@@ -113,9 +113,8 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
         }
         
         try {
-            // Anti-Spam & Crossfade Logic
             val prevPlayer = player
-            fadingPlayer?.destroy() // Kill any existing fading player immediately
+            fadingPlayer?.destroy()
             fadingPlayer = null
 
             if (prevPlayer != null && prevPlayer.isPlaying && symphony.settings.fadePlayback.value) {
@@ -125,6 +124,7 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
                 fadingPlayer?.setOnCrossfadeTriggerListener(null)
                 fadingPlayer?.setOnIsPlayingChangedListener(null)
                 
+                // Overture: Crossfade uses full duration and Equal Power curve
                 val fadeDuration = (symphony.settings.fadePlaybackDuration.value * 1000).toInt()
                 fadingPlayer?.changeVolume(
                     to = RadioPlayer.MIN_VOLUME, 
@@ -247,6 +247,7 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
             }
             if (it.fadePlayback) {
                 it.changeVolumeInstant(RadioPlayer.MIN_VOLUME)
+                // Overture: Resume uses a fast 300ms fade-in
                 it.changeVolume(RadioPlayer.MAX_VOLUME, durationMs = 300) {}
             } else {
                 it.changeVolumeInstant(RadioPlayer.MAX_VOLUME)
@@ -267,6 +268,7 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
             }
             isPauseRequested = true
             
+            // Overture: Pause uses a fast 300ms fade-out, unless forceFade is true
             val duration = if (forceFade) (symphony.settings.fadePlaybackDuration.value * 1000).toInt() else 300
             
             it.changeVolume(

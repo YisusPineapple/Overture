@@ -91,6 +91,7 @@ fun TimedContentText(
     var activeIndex by remember { mutableIntStateOf(-1) }
 
     // Overture: Decoupled lyrics sync from UI recomposition
+    // This loop runs in the background and only triggers a recomposition when the active line changes.
     LaunchedEffect(content) {
         while (isActive) {
             val currentPosition = context.symphony.radio.currentPlaybackPosition?.played ?: 0L

@@ -54,6 +54,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -66,6 +67,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import io.github.zyrouge.symphony.services.BottomBarAppearance
 import io.github.zyrouge.symphony.services.groove.Song
 import io.github.zyrouge.symphony.ui.helpers.FadeTransition
 import io.github.zyrouge.symphony.ui.helpers.TransitionDurations
@@ -76,11 +78,17 @@ import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
 
 @Composable
-fun AnimatedNowPlayingBottomBar(context: ViewContext, insetPadding: Boolean = true) {
+fun AnimatedNowPlayingBottomBar(context: ViewContext, insetPadding: Boolean = true, isHome: Boolean = false) {
     val visible = remember {
         MutableTransitionState(false).apply {
             targetState = true
         }
+    }
+
+    val appearance by context.symphony.settings.bottomBarAppearance.flow.collectAsState()
+    val pillBackground = when (appearance) {
+        BottomBarAppearance.LiquidGlass -> MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
+        BottomBarAppearance.Solid -> MaterialTheme.colorScheme.surface
     }
 
     AnimatedVisibility(
@@ -91,7 +99,19 @@ fun AnimatedNowPlayingBottomBar(context: ViewContext, insetPadding: Boolean = tr
         ) + fadeIn(animationSpec = nowPlayingBottomBarEnterAnimationSpec()),
         exit = fadeOut(),
     ) {
-        NowPlayingBottomBar(context, insetPadding)
+        if (!isHome) {
+            Box(
+                modifier = Modifier
+                    .padding(horizontal = 16.dp, vertical = 24.dp)
+                    .shadow(16.dp, RoundedCornerShape(32.dp))
+                    .clip(RoundedCornerShape(32.dp))
+                    .background(pillBackground)
+            ) {
+                NowPlayingBottomBar(context, insetPadding = false)
+            }
+        } else {
+            NowPlayingBottomBar(context, insetPadding)
+        }
     }
 }
 
@@ -157,14 +177,6 @@ fun NowPlayingBottomBar(context: ViewContext, insetPadding: Boolean = true) {
                         .clickable {
                             context.navController.navigate(NowPlayingViewRoute)
                         }
-                        .swipeable(
-                            onSwipeUp = {
-                                context.navController.navigate(NowPlayingViewRoute)
-                            },
-                            onSwipeDown = {
-                                context.symphony.radio.stop()
-                            },
-                        )
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
