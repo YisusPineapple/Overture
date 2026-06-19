@@ -9,6 +9,7 @@ import android.graphics.Bitmap
 import android.media.audiofx.AudioEffect
 import android.net.Uri
 import android.os.Build
+import android.os.Bundle
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
@@ -101,6 +102,12 @@ class RadioSession(val symphony: Symphony) {
                 override fun onSeekTo(pos: Long) {
                     super.onSeekTo(pos)
                     symphony.radio.seek(pos)
+                }
+
+                // Overture: Route Custom Actions from Android 13+ Notifications
+                override fun onCustomAction(action: String, extras: Bundle?) {
+                    super.onCustomAction(action, extras)
+                    handleAction(action)
                 }
 
                 override fun onRewind() {

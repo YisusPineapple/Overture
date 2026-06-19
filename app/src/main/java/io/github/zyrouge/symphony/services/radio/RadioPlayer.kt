@@ -2,6 +2,8 @@ package io.github.zyrouge.symphony.services.radio
 
 import android.net.Uri
 import androidx.annotation.OptIn
+import androidx.media3.common.AudioAttributes
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.PlaybackParameters
@@ -99,6 +101,13 @@ class RadioPlayer(val symphony: Symphony, val song: Song) {
     init {
         exoPlayer = ExoPlayer.Builder(symphony.applicationContext).build().apply {
             skipSilenceEnabled = false 
+            
+            // Overture: Configure AudioAttributes for High-Res Audio fidelity
+            val audioAttributes = AudioAttributes.Builder()
+                .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
+                .setUsage(C.USAGE_MEDIA)
+                .build()
+            setAudioAttributes(audioAttributes, false)
             
             setMediaItem(MediaItem.fromUri(uri))
             addListener(object : Player.Listener {

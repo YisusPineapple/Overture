@@ -4,8 +4,20 @@ import io.github.zyrouge.symphony.Symphony
 import kotlin.random.Random
 
 class RadioShorty(private val symphony: Symphony) {
+    
+    // Overture: Anti-Spam Debounce System
+    private var lastActionTime = 0L
+    private val debounceMs = 250L
+
+    private fun canExecuteAction(): Boolean {
+        val now = System.currentTimeMillis()
+        if (now - lastActionTime < debounceMs) return false
+        lastActionTime = now
+        return true
+    }
+
     fun playPause() {
-        if (!symphony.radio.hasPlayer) {
+        if (!canExecuteAction() || !symphony.radio.hasPlayer) {
             return
         }
         when {
@@ -25,8 +37,10 @@ class RadioShorty(private val symphony: Symphony) {
     }
 
     fun previous(): Boolean {
+        if (!canExecuteAction() || !symphony.radio.hasPlayer) {
+            return false
+        }
         return when {
-            !symphony.radio.hasPlayer -> false
             symphony.radio.currentPlaybackPosition!!.played <= 3000 && symphony.radio.canJumpToPrevious() -> {
                 symphony.radio.jumpToPrevious()
                 true
@@ -40,8 +54,10 @@ class RadioShorty(private val symphony: Symphony) {
     }
 
     fun skip(): Boolean {
+        if (!canExecuteAction() || !symphony.radio.hasPlayer) {
+            return false
+        }
         return when {
-            !symphony.radio.hasPlayer -> false
             symphony.radio.canJumpToNext() -> {
                 symphony.radio.jumpToNext()
                 true

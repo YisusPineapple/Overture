@@ -128,10 +128,20 @@ class MediaExposer(private val symphony: Symphony) {
         val cacheHit = cached != null
                 && cached.dateModified == lastModified
                 && (cached.coverFile?.let { cycle.artworkCacheUnused.contains(it) } != false)
-        val song = when {
-            cacheHit -> cached
-            else -> Song.parse(path, file, cycle.songParseOptions)
+        
+        // Overture: Resilience against corrupted Hi-Res audio files
+        val song = try {
+            when {
+                cacheHit -> cached
+                else -> Song.parse(path, file, cycle.songParseOptions)
+            }
+        } catch (e: Exception) {
+            Logger.error("MediaExposer", "Failed to parse audio file: $pathString", e)
+            null
         }
+
+        if (song == null) return
+
         if (song.duration.milliseconds < symphony.settings.minSongDuration.value.seconds) {
             return
         }
