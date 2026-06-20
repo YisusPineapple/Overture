@@ -30,6 +30,9 @@ import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Repeat
+import androidx.compose.material.icons.filled.RepeatOne
+import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material3.Icon
@@ -56,6 +59,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import io.github.zyrouge.symphony.services.radio.RadioQueue
 import io.github.zyrouge.symphony.ui.components.SongDropdownMenu
 import io.github.zyrouge.symphony.ui.helpers.FadeTransition
 import io.github.zyrouge.symphony.ui.helpers.ViewContext
@@ -169,6 +173,8 @@ fun NowPlayingBodyContent(context: ViewContext, data: NowPlayingData) {
                 }
             }
             Spacer(modifier = Modifier.height(defaultHorizontalPadding + 8.dp))
+            
+            // Overture: Redesigned Controls Layouts
             when (controlsLayout) {
                 NowPlayingControlsLayout.CompactLeft -> NowPlayingCompactControls(
                     context,
@@ -205,8 +211,17 @@ fun NowPlayingCompactControls(
 ) {
     Row(
         modifier = modifier.padding(defaultHorizontalPadding, 0.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
+        IconButton(onClick = { context.symphony.radio.queue.toggleShuffleMode() }) {
+            Icon(
+                Icons.Filled.Shuffle, 
+                null, 
+                tint = if (data.currentShuffleMode) dynamicColor else LocalContentColor.current.copy(alpha = 0.5f)
+            )
+        }
+        
         NowPlayingPlayPauseButton(
             context,
             data = data,
@@ -245,6 +260,14 @@ fun NowPlayingCompactControls(
                 color = NowPlayingControlButtonColor.Surface,
             ),
         )
+        
+        IconButton(onClick = { context.symphony.radio.queue.toggleLoopMode() }) {
+            Icon(
+                if (data.currentLoopMode == RadioQueue.LoopMode.Song) Icons.Filled.RepeatOne else Icons.Filled.Repeat, 
+                null, 
+                tint = if (data.currentLoopMode != RadioQueue.LoopMode.None) dynamicColor else LocalContentColor.current.copy(alpha = 0.5f)
+            )
+        }
     }
 }
 
@@ -252,17 +275,29 @@ fun NowPlayingCompactControls(
 fun NowPlayingTraditionalControls(context: ViewContext, data: NowPlayingData, dynamicColor: Color) {
     Row(
         modifier = Modifier
-            .padding(defaultHorizontalPadding, 0.dp)
+            .padding(horizontal = defaultHorizontalPadding)
             .fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceAround,
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
+        IconButton(onClick = { context.symphony.radio.queue.toggleShuffleMode() }) {
+            Icon(
+                Icons.Filled.Shuffle, 
+                null, 
+                modifier = Modifier.size(28.dp),
+                tint = if (data.currentShuffleMode) dynamicColor else LocalContentColor.current.copy(alpha = 0.5f)
+            )
+        }
+        
         NowPlayingSkipPreviousButton(
             context,
             data = data,
             style = NowPlayingControlButtonStyle(
                 color = NowPlayingControlButtonColor.Transparent,
+                size = NowPlayingControlButtonSize.Large
             ),
         )
+        
         if (data.enableSeekControls) {
             NowPlayingFastRewindButton(
                 context,
@@ -272,15 +307,17 @@ fun NowPlayingTraditionalControls(context: ViewContext, data: NowPlayingData, dy
                 ),
             )
         }
+        
         NowPlayingPlayPauseButton(
             context,
             data = data,
             style = NowPlayingControlButtonStyle(
                 color = NowPlayingControlButtonColor.Primary,
                 customColor = dynamicColor,
-                size = NowPlayingControlButtonSize.Large,
+                size = NowPlayingControlButtonSize.Giant, // Overture: Massive play button for traditional layout
             ),
         )
+        
         if (data.enableSeekControls) {
             NowPlayingFastForwardButton(
                 context,
@@ -290,13 +327,24 @@ fun NowPlayingTraditionalControls(context: ViewContext, data: NowPlayingData, dy
                 ),
             )
         }
+        
         NowPlayingSkipNextButton(
             context,
             data = data,
             style = NowPlayingControlButtonStyle(
                 color = NowPlayingControlButtonColor.Transparent,
+                size = NowPlayingControlButtonSize.Large
             ),
         )
+        
+        IconButton(onClick = { context.symphony.radio.queue.toggleLoopMode() }) {
+            Icon(
+                if (data.currentLoopMode == RadioQueue.LoopMode.Song) Icons.Filled.RepeatOne else Icons.Filled.Repeat, 
+                null, 
+                modifier = Modifier.size(28.dp),
+                tint = if (data.currentLoopMode != RadioQueue.LoopMode.None) dynamicColor else LocalContentColor.current.copy(alpha = 0.5f)
+            )
+        }
     }
 }
 
@@ -556,6 +604,7 @@ private enum class NowPlayingControlButtonColor {
 private enum class NowPlayingControlButtonSize {
     Default,
     Large,
+    Giant, // Overture: Added Giant size for Traditional layout
 }
 
 private data class NowPlayingControlButtonStyle(
@@ -579,13 +628,17 @@ private fun NowPlayingControlButton(
         NowPlayingControlButtonColor.Primary -> MaterialTheme.colorScheme.onPrimary
         else -> LocalContentColor.current
     }
-    val iconSize = when (style.size) {
-        NowPlayingControlButtonSize.Default -> 24.dp
-        NowPlayingControlButtonSize.Large -> 32.dp
+    
+    val (buttonSize, iconSize) = when (style.size) {
+        NowPlayingControlButtonSize.Default -> 48.dp to 24.dp
+        NowPlayingControlButtonSize.Large -> 56.dp to 32.dp
+        NowPlayingControlButtonSize.Giant -> 80.dp to 48.dp
     }
 
     IconButton(
-        modifier = Modifier.background(backgroundColor, CircleShape),
+        modifier = Modifier
+            .size(buttonSize)
+            .background(backgroundColor, CircleShape),
         onClick = onClick,
     ) {
         Icon(

@@ -20,9 +20,6 @@ import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.automirrored.outlined.Article
 import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.MotionPhotosPaused
-import androidx.compose.material.icons.filled.Repeat
-import androidx.compose.material.icons.filled.RepeatOne
-import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.Timer
@@ -47,7 +44,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import io.github.zyrouge.symphony.services.radio.RadioQueue
 import io.github.zyrouge.symphony.ui.helpers.ViewContext
 import io.github.zyrouge.symphony.ui.view.LyricsViewRoute
 import io.github.zyrouge.symphony.ui.view.NowPlayingData
@@ -86,7 +82,7 @@ fun NowPlayingBodyBottomBar(
                     bottom = 12.dp,
                 ),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween // Overture: Distribute evenly
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
             TextButton(
                 onClick = {
@@ -96,7 +92,7 @@ fun NowPlayingBodyBottomBar(
                 Icon(
                     Icons.AutoMirrored.Filled.Sort,
                     null,
-                    modifier = Modifier.size(24.dp), // Increased size
+                    modifier = Modifier.size(24.dp),
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
@@ -113,7 +109,7 @@ fun NowPlayingBodyBottomBar(
                     val showLyrics by showLyricsState.collectAsState()
 
                     IconButton(
-                        modifier = Modifier.size(48.dp), // Ensure touch target
+                        modifier = Modifier.size(48.dp),
                         onClick = {
                             when (lyricsLayout) {
                                 NowPlayingLyricsLayout.ReplaceArtwork -> {
@@ -131,7 +127,7 @@ fun NowPlayingBodyBottomBar(
                         Icon(
                             Icons.AutoMirrored.Outlined.Article,
                             null,
-                            modifier = Modifier.size(28.dp), // Increased icon size
+                            modifier = Modifier.size(28.dp),
                             tint = when {
                                 showLyrics -> MaterialTheme.colorScheme.primary
                                 else -> LocalContentColor.current
@@ -139,41 +135,7 @@ fun NowPlayingBodyBottomBar(
                         )
                     }
                 }
-                IconButton(
-                    modifier = Modifier.size(48.dp),
-                    onClick = {
-                        context.symphony.radio.queue.toggleLoopMode()
-                    }
-                ) {
-                    Icon(
-                        when (currentLoopMode) {
-                            RadioQueue.LoopMode.Song -> Icons.Filled.RepeatOne
-                            else -> Icons.Filled.Repeat
-                        },
-                        null,
-                        modifier = Modifier.size(28.dp),
-                        tint = when (currentLoopMode) {
-                            RadioQueue.LoopMode.None -> LocalContentColor.current
-                            else -> MaterialTheme.colorScheme.primary
-                        }
-                    )
-                }
-                IconButton(
-                    modifier = Modifier.size(48.dp),
-                    onClick = {
-                        context.symphony.radio.queue.toggleShuffleMode()
-                    }
-                ) {
-                    Icon(
-                        Icons.Filled.Shuffle,
-                        null,
-                        modifier = Modifier.size(28.dp),
-                        tint = when {
-                            currentShuffleMode -> MaterialTheme.colorScheme.primary
-                            else -> LocalContentColor.current
-                        },
-                    )
-                }
+                
                 IconButton(
                     modifier = Modifier.size(48.dp),
                     onClick = {

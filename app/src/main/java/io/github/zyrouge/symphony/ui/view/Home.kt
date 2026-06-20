@@ -76,6 +76,12 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
+import com.kyant.backdrop.drawBackdrop
+import com.kyant.backdrop.effects.blur
+import com.kyant.backdrop.effects.lens
+import com.kyant.backdrop.effects.vibrancy
 import io.github.zyrouge.symphony.services.BottomBarAppearance
 import io.github.zyrouge.symphony.services.groove.Groove
 import io.github.zyrouge.symphony.ui.components.AnimatedNowPlayingBottomBar
@@ -182,13 +188,15 @@ fun HomeView(context: ViewContext) {
     var showTabsSheet by remember { mutableStateOf(false) }
 
     val appearance by context.symphony.settings.bottomBarAppearance.flow.collectAsState()
-    val pillBackground = when (appearance) {
-        BottomBarAppearance.LiquidGlass -> MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
-        BottomBarAppearance.Solid -> MaterialTheme.colorScheme.surface
-    }
+    val isLiquidGlass = appearance == BottomBarAppearance.LiquidGlass
+    val pillBackground = MaterialTheme.colorScheme.surface.copy(alpha = if (isLiquidGlass) 0.65f else 1f)
+
+    // Overture: Create the backdrop layer to capture the background content
+    val homeBackdrop = rememberLayerBackdrop()
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             CenterAlignedTopAppBar(
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
@@ -274,7 +282,8 @@ fun HomeView(context: ViewContext) {
                     targetState = currentTab,
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(top = contentPadding.calculateTopPadding()), // Overture: No bottom padding here!
+                        .padding(top = contentPadding.calculateTopPadding())
+                        .layerBackdrop(homeBackdrop), // Overture: Capture content for Liquid Glass
                     transitionSpec = {
                         SlideTransition.slideUp.enterTransition()
                             .togetherWith(ScaleTransition.scaleDown.exitTransition())
@@ -294,13 +303,29 @@ fun HomeView(context: ViewContext) {
                     }
                 }
 
+                // Overture: True Liquid Glass Bottom Bar
                 Column(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .padding(horizontal = 16.dp, vertical = 24.dp)
                         .shadow(16.dp, RoundedCornerShape(32.dp))
                         .clip(RoundedCornerShape(32.dp))
-                        .background(pillBackground)
+                        .run {
+                            if (isLiquidGlass) {
+                                drawBackdrop(
+                                    backdrop = homeBackdrop,
+                                    shape = { RoundedCornerShape(32.dp) },
+                                    effects = {
+                                        vibrancy()
+                                        blur(24f.dp.toPx())
+                                        lens(24f.dp.toPx(), 24f.dp.toPx())
+                                    },
+                                    onDrawSurface = { drawRect(pillBackground) }
+                                )
+                            } else {
+                                background(pillBackground)
+                            }
+                        }
                 ) {
                     AnimatedNowPlayingBottomBar(context, insetPadding = false, isHome = true)
                     NavigationBar(

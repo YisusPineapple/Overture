@@ -143,7 +143,6 @@ fun SongList(
                         ) { i, songId ->
                             context.symphony.groove.song.get(songId)?.let { song ->
                                 
-                                // Overture: Swipe to Queue / Play Next
                                 val dismissState = rememberSwipeToDismissBoxState(
                                     confirmValueChange = { dismissValue ->
                                         when (dismissValue) {
@@ -153,12 +152,12 @@ fun SongList(
                                                     context.symphony.radio.queue.currentSongIndex + 1
                                                 )
                                                 Toast.makeText(context.activity, context.symphony.t.PlayNext + ": " + song.title, Toast.LENGTH_SHORT).show()
-                                                false // Snap back
+                                                false 
                                             }
                                             SwipeToDismissBoxValue.EndToStart -> {
                                                 context.symphony.radio.queue.add(song.id)
                                                 Toast.makeText(context.activity, context.symphony.t.AddToQueue + ": " + song.title, Toast.LENGTH_SHORT).show()
-                                                false // Snap back
+                                                false 
                                             }
                                             else -> false
                                         }
@@ -213,12 +212,15 @@ fun SongList(
                                                 .padding(horizontal = 24.dp),
                                             contentAlignment = alignment
                                         ) {
-                                            Icon(
-                                                icon,
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.onSurface,
-                                                modifier = Modifier.scale(scale)
-                                            )
+                                            // Overture: Only draw the icon if we are actually swiping to prevent ghost icons
+                                            if (isDismissing) {
+                                                Icon(
+                                                    icon,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.onSurface,
+                                                    modifier = Modifier.scale(scale)
+                                                )
+                                            }
                                         }
                                     },
                                     content = {

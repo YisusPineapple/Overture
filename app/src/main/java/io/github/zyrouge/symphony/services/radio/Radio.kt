@@ -74,7 +74,6 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
     var sleepTimer: SleepTimer? = null
     var pauseOnCurrentSongEnd = false
 
-    // Overture: WakeLock to prevent OS from killing the app in background
     private val wakeLock: PowerManager.WakeLock by lazy {
         val powerManager = symphony.applicationContext.getSystemService(Context.POWER_SERVICE) as PowerManager
         powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Overture:PlaybackWakeLock").apply {
@@ -126,28 +125,35 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
         }
         
         try {
+            // Overture: Anti-Spam Overlap Fix
+            // Detach the current player immediately so it doesn't trigger late events
             val prevPlayer = player
+            player = null 
+            
             fadingPlayer?.destroy()
             fadingPlayer = null
 
-            if (prevPlayer != null && prevPlayer.isPlaying && symphony.settings.fadePlayback.value) {
-                fadingPlayer = prevPlayer
-                fadingPlayer?.setOnPlaybackPositionListener(null)
-                fadingPlayer?.setOnFinishListener(null)
-                fadingPlayer?.setOnCrossfadeTriggerListener(null)
-                fadingPlayer?.setOnIsPlayingChangedListener(null)
-                
-                val fadeDuration = (symphony.settings.fadePlaybackDuration.value * 1000).toInt()
-                fadingPlayer?.changeVolume(
-                    to = RadioPlayer.MIN_VOLUME, 
-                    durationMs = fadeDuration, 
-                    curve = RadioEffects.FadeCurve.EQUAL_POWER
-                ) {
-                    fadingPlayer?.destroy()
-                    if (fadingPlayer == prevPlayer) fadingPlayer = null
+            if (prevPlayer != null) {
+                if (prevPlayer.isPlaying && symphony.settings.fadePlayback.value) {
+                    fadingPlayer = prevPlayer
+                    fadingPlayer?.setOnPlaybackPositionListener(null)
+                    fadingPlayer?.setOnFinishListener(null)
+                    fadingPlayer?.setOnCrossfadeTriggerListener(null)
+                    fadingPlayer?.setOnIsPlayingChangedListener(null)
+                    
+                    val fadeDuration = (symphony.settings.fadePlaybackDuration.value * 1000).toInt()
+                    fadingPlayer?.changeVolume(
+                        to = RadioPlayer.MIN_VOLUME, 
+                        durationMs = fadeDuration, 
+                        curve = RadioEffects.FadeCurve.EQUAL_POWER
+                    ) {
+                        fadingPlayer?.destroy()
+                        if (fadingPlayer == prevPlayer) fadingPlayer = null
+                    }
+                } else {
+                    // If it was preparing or paused, destroy it instantly to prevent ghost playback
+                    prevPlayer.destroy()
                 }
-            } else {
-                prevPlayer?.destroy()
             }
 
             player = nextPlayer?.takeIf {

@@ -8,16 +8,16 @@ plugins {
 }
 
 android {
-    namespace = "io.github.zyrouge.symphony"
+    namespace = "com.yisuspineapple.overture"
     compileSdk = libs.versions.compile.sdk.get().toInt()
 
     defaultConfig {
-        applicationId = "io.github.zyrouge.symphony"
+        applicationId = "com.yisuspineapple.overture"
         minSdk = 24
         targetSdk = libs.versions.target.sdk.get().toInt()
 
-        versionCode = 115
-        versionName = "2024.12.115"
+        versionCode = 116
+        versionName = "2026.6.116"
         versionName = System.getenv("APP_VERSION_NAME") ?: versionName
 
         vectorDrawables {
@@ -136,6 +136,7 @@ dependencies {
     implementation(libs.media3.session)
     implementation(libs.okhttp3)
     implementation(libs.palette)
+    implementation(libs.backdrop)
     ksp(libs.room.compiler)
     implementation(libs.room.ktx)
     implementation(libs.room.runtime)

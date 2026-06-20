@@ -7,6 +7,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
@@ -78,9 +79,10 @@ fun QueueView(context: ViewContext) {
     )
     var showSaveDialog by remember { mutableStateOf(false) }
 
-    // Drag & Drop State
-    var draggedIndex by remember { mutableStateOf<Int?>(null) }
-    var draggedOffsetY by remember { mutableFloatStateOf(0f) }
+    // Overture: Robust Drag & Drop State
+    var draggingIndex by remember { mutableStateOf<Int?>(null) }
+    var targetIndex by remember { mutableStateOf<Int?>(null) }
+    var dragOffset by remember { mutableFloatStateOf(0f) }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -143,7 +145,7 @@ fun QueueView(context: ViewContext) {
         content = { contentPadding ->
             Box(
                 modifier = Modifier
-                    .padding(contentPadding)
+                    .padding(top = contentPadding.calculateTopPadding())
                     .fillMaxSize()
             ) {
                 if (queue.isEmpty()) {
@@ -151,6 +153,7 @@ fun QueueView(context: ViewContext) {
                 } else {
                     LazyColumn(
                         state = listState,
+                        contentPadding = PaddingValues(bottom = 140.dp),
                         modifier = Modifier.pointerInput(queue) {
                             detectDragGesturesAfterLongPress(
                                 onDragStart = { offset ->
@@ -158,29 +161,38 @@ fun QueueView(context: ViewContext) {
                                         offset.y.toInt() in it.offset..(it.offset + it.size)
                                     }
                                     if (item != null) {
-                                        draggedIndex = item.index
-                                        draggedOffsetY = 0f
+                                        draggingIndex = item.index
+                                        targetIndex = item.index
+                                        dragOffset = 0f
                                     }
                                 },
                                 onDrag = { change, dragAmount ->
                                     change.consume()
-                                    draggedOffsetY += dragAmount.y
-                                    val cIndex = draggedIndex ?: return@detectDragGesturesAfterLongPress
+                                    dragOffset += dragAmount.y
+                                    val cIndex = draggingIndex ?: return@detectDragGesturesAfterLongPress
                                     val cItem = listState.layoutInfo.visibleItemsInfo.firstOrNull { it.index == cIndex } ?: return@detectDragGesturesAfterLongPress
                                     
-                                    val centerY = cItem.offset + draggedOffsetY + cItem.size / 2
-                                    val targetItem = listState.layoutInfo.visibleItemsInfo.firstOrNull {
-                                        it.index != cIndex && centerY.toInt() in it.offset..(it.offset + it.size)
+                                    val currentY = cItem.offset + dragOffset + cItem.size / 2
+                                    val hoveredItem = listState.layoutInfo.visibleItemsInfo.firstOrNull {
+                                        currentY.toInt() in it.offset..(it.offset + it.size)
                                     }
-                                    
-                                    if (targetItem != null) {
-                                        context.symphony.radio.queue.move(cIndex, targetItem.index)
-                                        draggedIndex = targetItem.index
-                                        draggedOffsetY += (cItem.offset - targetItem.offset)
+                                    if (hoveredItem != null) {
+                                        targetIndex = hoveredItem.index
                                     }
                                 },
-                                onDragEnd = { draggedIndex = null; draggedOffsetY = 0f },
-                                onDragCancel = { draggedIndex = null; draggedOffsetY = 0f }
+                                onDragEnd = {
+                                    if (draggingIndex != null && targetIndex != null && draggingIndex != targetIndex) {
+                                        context.symphony.radio.queue.move(draggingIndex!!, targetIndex!!)
+                                    }
+                                    draggingIndex = null
+                                    targetIndex = null
+                                    dragOffset = 0f
+                                },
+                                onDragCancel = {
+                                    draggingIndex = null
+                                    targetIndex = null
+                                    dragOffset = 0f
+                                }
                             )
                         }
                     ) {
@@ -191,9 +203,10 @@ fun QueueView(context: ViewContext) {
                         ) { i, songId ->
                             context.symphony.groove.song.get(songId)?.let { song ->
                                 
-                                val isDragged = i == draggedIndex
-                                val zIndex = if (isDragged) 1f else 0f
-                                val translationY = if (isDragged) draggedOffsetY else 0f
+                                val isDragging = i == draggingIndex
+                                val isTarget = i == targetIndex && i != draggingIndex
+                                val zIndex = if (isDragging) 1f else 0f
+                                val translationY = if (isDragging) dragOffset else 0f
 
                                 val dismissState = rememberSwipeToDismissBoxState(
                                     confirmValueChange = { dismissValue ->
@@ -211,7 +224,8 @@ fun QueueView(context: ViewContext) {
                                         .zIndex(zIndex)
                                         .graphicsLayer {
                                             this.translationY = translationY
-                                            this.shadowElevation = if (isDragged) 16.dp.toPx() else 0f
+                                            this.shadowElevation = if (isDragging) 16.dp.toPx() else 0f
+                                            this.alpha = if (isTarget) 0.5f else 1f // Dim the target slot
                                         }
                                 ) {
                                     SwipeToDismissBox(
@@ -244,12 +258,14 @@ fun QueueView(context: ViewContext) {
                                                     .padding(horizontal = 24.dp),
                                                 contentAlignment = alignment
                                             ) {
-                                                Icon(
-                                                    Icons.Filled.Delete,
-                                                    contentDescription = "Remove",
-                                                    tint = Color.White,
-                                                    modifier = Modifier.scale(scale)
-                                                )
+                                                if (isDismissing) {
+                                                    Icon(
+                                                        Icons.Filled.Delete,
+                                                        contentDescription = "Remove",
+                                                        tint = Color.White,
+                                                        modifier = Modifier.scale(scale)
+                                                    )
+                                                }
                                             }
                                         },
                                         content = {

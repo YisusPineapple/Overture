@@ -1,14 +1,35 @@
 package io.github.zyrouge.symphony.ui.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AudioFile
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.unit.dp
 import io.github.zyrouge.symphony.services.groove.Song
 import io.github.zyrouge.symphony.ui.helpers.ViewContext
 import io.github.zyrouge.symphony.ui.view.AlbumArtistViewRoute
@@ -17,18 +38,70 @@ import io.github.zyrouge.symphony.ui.view.ArtistViewRoute
 import io.github.zyrouge.symphony.ui.view.GenreViewRoute
 import io.github.zyrouge.symphony.utils.ActivityUtils
 import io.github.zyrouge.symphony.utils.DurationUtils
+import io.github.zyrouge.symphony.utils.SimplePath
 import java.text.SimpleDateFormat
 import java.util.Date
 import kotlin.math.round
 
 @Composable
 fun SongInformationDialog(context: ViewContext, song: Song, onDismissRequest: () -> Unit) {
+    val fileExtension = SimplePath(song.path).extension.uppercase()
+
     InformationDialog(
         context,
         content = {
-            InformationKeyValue(context.symphony.t.Id) {
-                LongPressCopyableText(context, song.id)
+            // Overture: Redesigned Audio Quality Header
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                    .padding(16.dp)
+            ) {
+                Column {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Filled.AudioFile, null, tint = MaterialTheme.colorScheme.primary)
+                        Spacer(modifier = Modifier.size(8.dp))
+                        Text(
+                            text = fileExtension,
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                        )
+                        Spacer(modifier = Modifier.weight(1f))
+                        song.bitrateK?.let {
+                            Text(
+                                text = context.symphony.t.XKbps(it.toString()),
+                                style = MaterialTheme.typography.labelLarge.copy(color = MaterialTheme.colorScheme.primary)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        song.samplingRateK?.let {
+                            Text(
+                                text = context.symphony.t.XKHz(it.toString()),
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                        song.channels?.let {
+                            Text(
+                                text = context.symphony.t.AudioChannels + ": $it",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                        Text(
+                            text = "${round((song.size / 1024 / 1024).toDouble())} MB",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
             }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Metadata Section
             InformationKeyValue(context.symphony.t.TrackName) {
                 LongPressCopyableText(context, song.title)
             }
@@ -48,15 +121,6 @@ fun SongInformationDialog(context: ViewContext, song: Song, onDismissRequest: ()
                     }
                 }
             }
-            if (song.composers.isNotEmpty()) {
-                InformationKeyValue(context.symphony.t.Composer) {
-                    // TODO composers page maybe?
-                    LongPressCopyableAndTappableText(context, song.composers) {
-                        onDismissRequest()
-                        context.navController.navigate(ArtistViewRoute(it))
-                    }
-                }
-            }
             context.symphony.groove.album.getIdFromSong(song)?.let { albumId ->
                 InformationKeyValue(context.symphony.t.Album) {
                     LongPressCopyableAndTappableText(context, setOf(song.album!!)) {
@@ -73,70 +137,30 @@ fun SongInformationDialog(context: ViewContext, song: Song, onDismissRequest: ()
                     }
                 }
             }
-            song.date?.let {
-                InformationKeyValue(context.symphony.t.Date) {
-                    LongPressCopyableText(context, it.toString())
-                }
-            }
-            song.year?.let {
-                InformationKeyValue(context.symphony.t.Year) {
-                    LongPressCopyableText(context, it.toString())
-                }
-            }
-            song.trackNumber?.let {
-                InformationKeyValue(context.symphony.t.TrackNumber) {
-                    LongPressCopyableText(context, it.toString())
-                }
-            }
-            song.trackTotal?.let {
-                InformationKeyValue(context.symphony.t.TrackCount) {
-                    LongPressCopyableText(context, it.toString())
-                }
-            }
-            song.discNumber?.let {
-                InformationKeyValue(context.symphony.t.DiscNumber) {
-                    LongPressCopyableText(context, it.toString())
-                }
-            }
-            song.discTotal?.let {
-                InformationKeyValue(context.symphony.t.DiscTotal) {
-                    LongPressCopyableText(context, it.toString())
-                }
-            }
-            InformationKeyValue(context.symphony.t.Duration) {
-                LongPressCopyableText(context, DurationUtils.formatMs(song.duration))
-            }
-            song.encoder?.let {
-                InformationKeyValue(context.symphony.t.Encoder) {
-                    LongPressCopyableText(context, it)
-                }
-            }
-            song.channels?.let {
-                InformationKeyValue(context.symphony.t.AudioChannels) {
-                    LongPressCopyableText(context, it.toString())
-                }
-            }
-            song.bitrateK?.let {
-                InformationKeyValue(context.symphony.t.Bitrate) {
-                    val text = buildString {
-                        append(context.symphony.t.XKbps(it.toString()))
+            
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                song.year?.let {
+                    InformationKeyValue(context.symphony.t.Year) {
+                        LongPressCopyableText(context, it.toString())
                     }
-                    LongPressCopyableText(context, text)
+                }
+                song.trackNumber?.let {
+                    InformationKeyValue(context.symphony.t.TrackNumber) {
+                        LongPressCopyableText(context, "$it" + (song.trackTotal?.let { t -> "/$t" } ?: ""))
+                    }
+                }
+                song.discNumber?.let {
+                    InformationKeyValue(context.symphony.t.DiscNumber) {
+                        LongPressCopyableText(context, "$it" + (song.discTotal?.let { t -> "/$t" } ?: ""))
+                    }
                 }
             }
-            song.samplingRateK?.let {
-                InformationKeyValue(context.symphony.t.SamplingRate) {
-                    LongPressCopyableText(context, context.symphony.t.XKHz(it.toString()))
-                }
-            }
-            InformationKeyValue(context.symphony.t.Filename) {
-                LongPressCopyableText(context, song.filename)
-            }
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+            // File Section
             InformationKeyValue(context.symphony.t.Path) {
                 LongPressCopyableText(context, song.path)
-            }
-            InformationKeyValue(context.symphony.t.Size) {
-                LongPressCopyableText(context, "${round((song.size / 1024 / 1024).toDouble())} MB")
             }
             InformationKeyValue(context.symphony.t.LastModified) {
                 LongPressCopyableText(
@@ -158,6 +182,7 @@ private fun LongPressCopyableAndTappableText(
 ) {
     val textStyle = LocalTextStyle.current.copy(
         textDecoration = TextDecoration.Underline,
+        color = MaterialTheme.colorScheme.primary
     )
 
     FlowRow {
@@ -177,7 +202,7 @@ private fun LongPressCopyableAndTappableText(
                 },
             )
             if (i != values.size - 1) {
-                Text(", ")
+                Text(", ", color = MaterialTheme.colorScheme.onSurface)
             }
         }
     }

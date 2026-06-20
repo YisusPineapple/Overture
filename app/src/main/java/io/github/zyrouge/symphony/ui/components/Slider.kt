@@ -45,7 +45,6 @@ fun Slider(
 
         val rawRatio = RangeUtils.calculateRatioFromValue(value, range).coerceIn(0f, 1f)
         
-        // M3E Spring Animation for smooth playback progression (only animates when not dragging)
         val animatedRatio by animateFloatAsState(
             targetValue = if (dragging) dragRatio else rawRatio,
             animationSpec = spring(
@@ -55,24 +54,14 @@ fun Slider(
             label = "SliderRatioAnimation"
         )
 
-        // M3E Physics: Track thickens when interacted with
+        // Overture: M3E Thick Slider Physics
         val trackHeight by animateDpAsState(
-            targetValue = if (dragging) 12.dp else 4.dp,
+            targetValue = if (dragging) 24.dp else 12.dp,
             animationSpec = spring(
                 dampingRatio = Spring.DampingRatioMediumBouncy,
                 stiffness = Spring.StiffnessLow
             ),
             label = "TrackHeightAnimation"
-        )
-
-        // M3E Physics: Thumb expands when interacted with
-        val thumbRadius by animateDpAsState(
-            targetValue = if (dragging) 10.dp else 6.dp,
-            animationSpec = spring(
-                dampingRatio = Spring.DampingRatioMediumBouncy,
-                stiffness = Spring.StiffnessLow
-            ),
-            label = "ThumbRadiusAnimation"
         )
 
         val activeColor = MaterialTheme.colorScheme.primary
@@ -81,7 +70,7 @@ fun Slider(
         Canvas(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(32.dp) // Touch target size expanded for better UX
+                .height(48.dp) // Accessible touch target
                 .padding(horizontal = 20.dp)
                 .pointerInput(Unit) {
                     detectTapGestures(
@@ -116,7 +105,7 @@ fun Slider(
             val trackH = trackHeight.toPx()
             val cornerRadius = CornerRadius(trackH / 2f, trackH / 2f)
 
-            // 1. Draw Inactive Track (Background)
+            // Inactive Track
             drawRoundRect(
                 color = inactiveColor,
                 topLeft = Offset(0f, trackY - trackH / 2f),
@@ -124,29 +113,13 @@ fun Slider(
                 cornerRadius = cornerRadius
             )
 
-            // 2. Draw Active Track (Foreground)
+            // Active Track
             val activeWidth = size.width * animatedRatio
             drawRoundRect(
                 color = activeColor,
                 topLeft = Offset(0f, trackY - trackH / 2f),
                 size = Size(activeWidth, trackH),
                 cornerRadius = cornerRadius
-            )
-
-            // 3. Draw Liquid Glow (Only when dragging, zero cost fallback for Android 9)
-            if (dragging) {
-                drawCircle(
-                    color = activeColor.copy(alpha = 0.25f),
-                    radius = thumbRadius.toPx() * 2.2f,
-                    center = Offset(activeWidth, trackY)
-                )
-            }
-
-            // 4. Draw Thumb
-            drawCircle(
-                color = activeColor,
-                radius = thumbRadius.toPx(),
-                center = Offset(activeWidth, trackY)
             )
         }
 
