@@ -18,6 +18,7 @@ import androidx.compose.ui.composed
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.dp
 import io.github.zyrouge.symphony.utils.toSafeFinite
 import kotlinx.coroutines.launch
 import kotlin.math.floor

@@ -19,12 +19,13 @@ import androidx.compose.ui.composed
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.dp
 import io.github.zyrouge.symphony.utils.toSafeFinite
 import kotlinx.coroutines.launch
 import kotlin.math.max
 
 fun Modifier.drawScrollBar(state: LazyListState): Modifier = composed {
-    val scrollPointerColor = MaterialTheme.colorScheme.primary // Overture: Use primary color for visibility
+    val scrollPointerColor = MaterialTheme.colorScheme.primary
     val isLastItemVisible by remember {
         derivedStateOf {
             state.layoutInfo.visibleItemsInfo.lastOrNull()?.index == state.layoutInfo.totalItemsCount - 1
@@ -53,13 +54,12 @@ fun Modifier.drawScrollBar(state: LazyListState): Modifier = composed {
     )
 
     val density = LocalDensity.current
-    val touchTargetWidth = with(density) { 32.dp.toPx() } // 32dp touch area on the right edge
+    val touchTargetWidth = with(density) { 32.dp.toPx() }
 
     this
         .pointerInput(state.layoutInfo.totalItemsCount) {
             detectVerticalDragGestures(
                 onDragStart = { offset ->
-                    // Only intercept drag if it starts on the right edge
                     if (offset.x >= size.width - touchTargetWidth) {
                         isDragging = true
                     }
