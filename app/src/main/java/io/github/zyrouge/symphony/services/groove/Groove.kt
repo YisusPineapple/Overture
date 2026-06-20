@@ -37,10 +37,10 @@ class Groove(private val symphony: Symphony) : Symphony.Hooks {
     val genre = GenreRepository(symphony)
     val playlist = PlaylistRepository(symphony)
 
-    private suspend fun fetch(options: FetchOptions) {
+    // Overture: Renamed to performFetch to avoid Conflicting Overloads with the public fetch()
+    private suspend fun performFetch(options: FetchOptions) {
         val cachedSongsCount = loadCachedLibrary()
         
-        // Overture: Only scan the slow eMMC storage if the cache is empty OR if the user explicitly requested a rescan.
         if (cachedSongsCount == 0 || options.forceRescan) {
             coroutineScope.launch {
                 awaitAll(
@@ -49,7 +49,6 @@ class Groove(private val symphony: Symphony) : Symphony.Hooks {
                 )
             }.join()
         } else {
-            // If we loaded from cache, we only need to fetch playlists
             playlist.fetch()
         }
     }
@@ -113,7 +112,7 @@ class Groove(private val symphony: Symphony) : Symphony.Hooks {
             if (options.resetPersistentCache) {
                 clearCache()
             }
-            fetch(options)
+            performFetch(options)
         }
     }
 
