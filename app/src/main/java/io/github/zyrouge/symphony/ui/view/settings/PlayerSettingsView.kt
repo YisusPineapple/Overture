@@ -118,7 +118,7 @@ fun PlayerSettingsView(context: ViewContext) {
                         label = { value ->
                             Text(context.symphony.t.XSecs(value.toString()))
                         },
-                        range = 0.5f..6f,
+                        range = 0.5f..15f, // Overture: Increased crossfade limit to 15s
                         initialValue = fadePlaybackDuration,
                         onValue = { value ->
                             value.times(2).roundToInt().toFloat().div(2)

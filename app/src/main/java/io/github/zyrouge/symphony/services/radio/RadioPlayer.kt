@@ -9,6 +9,7 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import io.github.zyrouge.symphony.Symphony
 import io.github.zyrouge.symphony.services.groove.Song
@@ -99,10 +100,13 @@ class RadioPlayer(val symphony: Symphony, val song: Song) {
     }
 
     init {
-        exoPlayer = ExoPlayer.Builder(symphony.applicationContext).build().apply {
+        // Overture: Enable software decoders (Extension Renderers) to support more audio formats
+        val renderersFactory = DefaultRenderersFactory(symphony.applicationContext)
+            .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
+
+        exoPlayer = ExoPlayer.Builder(symphony.applicationContext, renderersFactory).build().apply {
             skipSilenceEnabled = false 
             
-            // Overture: Configure AudioAttributes for High-Res Audio fidelity
             val audioAttributes = AudioAttributes.Builder()
                 .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
                 .setUsage(C.USAGE_MEDIA)

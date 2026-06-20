@@ -1,25 +1,45 @@
 package io.github.zyrouge.symphony.ui.components
 
+import android.widget.Toast
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
+import androidx.compose.material.icons.automirrored.filled.PlaylistPlay
 import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.github.zyrouge.symphony.services.groove.Groove
@@ -36,6 +56,7 @@ enum class SongListType {
     Album,
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SongList(
     context: ViewContext,
@@ -111,6 +132,7 @@ fun SongList(
 
                     LazyColumn(
                         state = lazyListState,
+                        contentPadding = PaddingValues(bottom = 140.dp),
                         modifier = Modifier.drawScrollBar(lazyListState)
                     ) {
                         leadingContent?.invoke(this)
@@ -120,23 +142,105 @@ fun SongList(
                             contentType = { _, _ -> Groove.Kind.SONG }
                         ) { i, songId ->
                             context.symphony.groove.song.get(songId)?.let { song ->
-                                SongCard(
-                                    context,
-                                    song = song,
-                                    thumbnailLabel = cardThumbnailLabel?.let {
-                                        { it(i, song) }
+                                
+                                // Overture: Swipe to Queue / Play Next
+                                val dismissState = rememberSwipeToDismissBoxState(
+                                    confirmValueChange = { dismissValue ->
+                                        when (dismissValue) {
+                                            SwipeToDismissBoxValue.StartToEnd -> {
+                                                context.symphony.radio.queue.add(
+                                                    song.id,
+                                                    context.symphony.radio.queue.currentSongIndex + 1
+                                                )
+                                                Toast.makeText(context.activity, context.symphony.t.PlayNext + ": " + song.title, Toast.LENGTH_SHORT).show()
+                                                false // Snap back
+                                            }
+                                            SwipeToDismissBoxValue.EndToStart -> {
+                                                context.symphony.radio.queue.add(song.id)
+                                                Toast.makeText(context.activity, context.symphony.t.AddToQueue + ": " + song.title, Toast.LENGTH_SHORT).show()
+                                                false // Snap back
+                                            }
+                                            else -> false
+                                        }
+                                    }
+                                )
+
+                                SwipeToDismissBox(
+                                    state = dismissState,
+                                    enableDismissFromStartToEnd = true,
+                                    enableDismissFromEndToStart = true,
+                                    backgroundContent = {
+                                        val direction = dismissState.dismissDirection
+                                        val isDismissing = dismissState.targetValue != SwipeToDismissBoxValue.Settled
+                                        
+                                        val color by animateColorAsState(
+                                            targetValue = when {
+                                                !isDismissing -> Color.Transparent
+                                                direction == SwipeToDismissBoxValue.StartToEnd -> MaterialTheme.colorScheme.secondaryContainer
+                                                direction == SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.tertiaryContainer
+                                                else -> Color.Transparent
+                                            },
+                                            label = "swipeColor"
+                                        )
+                                        
+                                        val alignment = when (direction) {
+                                            SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
+                                            SwipeToDismissBoxValue.EndToStart -> Alignment.CenterEnd
+                                            else -> Alignment.Center
+                                        }
+                                        
+                                        val icon = when (direction) {
+                                            SwipeToDismissBoxValue.StartToEnd -> Icons.AutoMirrored.Filled.PlaylistPlay
+                                            SwipeToDismissBoxValue.EndToStart -> Icons.AutoMirrored.Filled.PlaylistAdd
+                                            else -> Icons.Default.MusicNote
+                                        }
+                                        
+                                        val scale by animateFloatAsState(
+                                            targetValue = if (isDismissing) 1.2f else 0.8f,
+                                            animationSpec = spring(
+                                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                                stiffness = Spring.StiffnessLow
+                                            ),
+                                            label = "swipeScale"
+                                        )
+
+                                        Box(
+                                            Modifier
+                                                .fillMaxSize()
+                                                .padding(vertical = 4.dp)
+                                                .clip(RoundedCornerShape(12.dp))
+                                                .background(color)
+                                                .padding(horizontal = 24.dp),
+                                            contentAlignment = alignment
+                                        ) {
+                                            Icon(
+                                                icon,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.onSurface,
+                                                modifier = Modifier.scale(scale)
+                                            )
+                                        }
                                     },
-                                    thumbnailLabelStyle = cardThumbnailLabelStyle,
-                                    disableHeartIcon = disableHeartIcon,
-                                    trailingOptionsContent = trailingOptionsContent?.let {
-                                        { onDismissRequest -> it(i, song, onDismissRequest) }
-                                    },
-                                ) {
-                                    context.symphony.radio.shorty.playQueue(
-                                        sortedSongIds,
-                                        Radio.PlayOptions(index = i)
-                                    )
-                                }
+                                    content = {
+                                        SongCard(
+                                            context,
+                                            song = song,
+                                            thumbnailLabel = cardThumbnailLabel?.let {
+                                                { it(i, song) }
+                                            },
+                                            thumbnailLabelStyle = cardThumbnailLabelStyle,
+                                            disableHeartIcon = disableHeartIcon,
+                                            trailingOptionsContent = trailingOptionsContent?.let {
+                                                { onDismissRequest -> it(i, song, onDismissRequest) }
+                                            },
+                                        ) {
+                                            context.symphony.radio.shorty.playQueue(
+                                                sortedSongIds,
+                                                Radio.PlayOptions(index = i)
+                                            )
+                                        }
+                                    }
+                                )
                             }
                         }
                         trailingContent?.invoke(this)

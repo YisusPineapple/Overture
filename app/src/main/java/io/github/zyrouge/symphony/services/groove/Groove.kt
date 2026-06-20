@@ -37,19 +37,25 @@ class Groove(private val symphony: Symphony) : Symphony.Hooks {
     val genre = GenreRepository(symphony)
     val playlist = PlaylistRepository(symphony)
 
-    private suspend fun fetch() {
-        // Overture: Instant local library load to prevent empty screen on startup
-        loadCachedLibrary()
-        coroutineScope.launch {
-            awaitAll(
-                async { exposer.fetch() },
-                async { playlist.fetch() },
-            )
-        }.join()
+    private suspend fun fetch(options: FetchOptions) {
+        val cachedSongsCount = loadCachedLibrary()
+        
+        // Overture: Only scan the slow eMMC storage if the cache is empty OR if the user explicitly requested a rescan.
+        if (cachedSongsCount == 0 || options.forceRescan) {
+            coroutineScope.launch {
+                awaitAll(
+                    async { exposer.fetch() },
+                    async { playlist.fetch() },
+                )
+            }.join()
+        } else {
+            // If we loaded from cache, we only need to fetch playlists
+            playlist.fetch()
+        }
     }
 
-    private suspend fun loadCachedLibrary() {
-        try {
+    private suspend fun loadCachedLibrary(): Int {
+        return try {
             val cachedSongs = withContext(Dispatchers.IO) {
                 symphony.database.songCache.entriesPathMapped().values
             }
@@ -66,8 +72,10 @@ class Groove(private val symphony: Symphony) : Symphony.Hooks {
                 }
                 Logger.warn("Groove", "Loaded ${cachedSongs.size} songs from local DB cache instantly.")
             }
+            cachedSongs.size
         } catch (err: Exception) {
             Logger.error("Groove", "Failed to load cached library on start", err)
+            0
         }
     }
 
@@ -94,6 +102,7 @@ class Groove(private val symphony: Symphony) : Symphony.Hooks {
     data class FetchOptions(
         val resetInMemoryCache: Boolean = false,
         val resetPersistentCache: Boolean = false,
+        val forceRescan: Boolean = false,
     )
 
     fun fetch(options: FetchOptions) {
@@ -104,13 +113,13 @@ class Groove(private val symphony: Symphony) : Symphony.Hooks {
             if (options.resetPersistentCache) {
                 clearCache()
             }
-            fetch()
+            fetch(options)
         }
     }
 
     override fun onSymphonyReady() {
         coroutineScope.launch {
-            fetch()
+            fetch(FetchOptions(forceRescan = false))
             readyDeferred.complete(true)
         }
     }

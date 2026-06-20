@@ -1,5 +1,7 @@
 package io.github.zyrouge.symphony.services.radio
 
+import android.content.Context
+import android.os.PowerManager
 import io.github.zyrouge.symphony.Symphony
 import io.github.zyrouge.symphony.utils.Eventer
 import io.github.zyrouge.symphony.utils.Logger
@@ -72,6 +74,14 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
     var sleepTimer: SleepTimer? = null
     var pauseOnCurrentSongEnd = false
 
+    // Overture: WakeLock to prevent OS from killing the app in background
+    private val wakeLock: PowerManager.WakeLock by lazy {
+        val powerManager = symphony.applicationContext.getSystemService(Context.POWER_SERVICE) as PowerManager
+        powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Overture:PlaybackWakeLock").apply {
+            setReferenceCounted(false)
+        }
+    }
+
     init {
         nativeReceiver.start()
         onUpdate.subscribe(this::watchQueueUpdates)
@@ -88,6 +98,9 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
         observatory.destroy()
         session.destroy()
         nativeReceiver.destroy()
+        if (wakeLock.isHeld) {
+            wakeLock.release()
+        }
     }
 
     data class PlayOptions(
@@ -124,7 +137,6 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
                 fadingPlayer?.setOnCrossfadeTriggerListener(null)
                 fadingPlayer?.setOnIsPlayingChangedListener(null)
                 
-                // Overture: Crossfade uses full duration and Equal Power curve
                 val fadeDuration = (symphony.settings.fadePlaybackDuration.value * 1000).toInt()
                 fadingPlayer?.changeVolume(
                     to = RadioPlayer.MIN_VOLUME, 
@@ -167,8 +179,10 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
             }
             player!!.setOnIsPlayingChangedListener { isPlaying ->
                 if (isPlaying) {
+                    acquireWakeLock()
                     onUpdate.dispatch(if (!player!!.hasPlayedOnce) Events.Player.Started else Events.Player.Resumed)
                 } else {
+                    releaseWakeLock()
                     onUpdate.dispatch(Events.Player.Paused)
                 }
             }
@@ -245,9 +259,9 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
             if (symphony.settings.requireAudioFocus.value && !hasFocus) {
                 return
             }
+            acquireWakeLock()
             if (it.fadePlayback) {
                 it.changeVolumeInstant(RadioPlayer.MIN_VOLUME)
-                // Overture: Resume uses a fast 300ms fade-in
                 it.changeVolume(RadioPlayer.MAX_VOLUME, durationMs = 300) {}
             } else {
                 it.changeVolumeInstant(RadioPlayer.MAX_VOLUME)
@@ -268,7 +282,6 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
             }
             isPauseRequested = true
             
-            // Overture: Pause uses a fast 300ms fade-out, unless forceFade is true
             val duration = if (forceFade) (symphony.settings.fadePlaybackDuration.value * 1000).toInt() else 300
             
             it.changeVolume(
@@ -277,6 +290,7 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
                 curve = RadioEffects.FadeCurve.LINEAR
             ) { _ ->
                 it.pause()
+                releaseWakeLock()
                 focus.abandonFocus()
                 onFinish()
             }
@@ -290,6 +304,7 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
         player?.let {
             isPauseRequested = true
             it.pause()
+            releaseWakeLock()
         }
     }
 
@@ -300,7 +315,20 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
         persistedSpeed = RadioPlayer.DEFAULT_SPEED
         persistedPitch = RadioPlayer.DEFAULT_PITCH
         isPauseRequested = false
+        releaseWakeLock()
         if (ended) onUpdate.dispatch(Events.Player.Ended)
+    }
+
+    private fun acquireWakeLock() {
+        if (!wakeLock.isHeld) {
+            wakeLock.acquire(10 * 60 * 1000L /*10 minutes fallback*/)
+        }
+    }
+
+    private fun releaseWakeLock() {
+        if (wakeLock.isHeld) {
+            wakeLock.release()
+        }
     }
 
     fun jumpTo(index: Int) = play(PlayOptions(index = index))

@@ -138,14 +138,23 @@ data class Song(
                 if (extension == null) {
                     return@let null
                 }
+                
                 val quality = symphony.settings.artworkQuality.value
+                val name = "$id.$extension"
+                
                 if (quality.maxSide == null) {
-                    val name = "$id.$extension"
                     symphony.database.artworkCache.get(name).writeBytes(it.data)
                     return@let name
                 }
-                val bitmap = BitmapFactory.decodeByteArray(it.data, 0, it.data.size)
-                val name = "$id.jpg"
+                
+                // Overture: OOM Prevention using inSampleSize
+                val boundsOptions = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                BitmapFactory.decodeByteArray(it.data, 0, it.data.size, boundsOptions)
+                val sampleSize = ImagePreserver.calculateInSampleSize(boundsOptions, quality.maxSide, quality.maxSide)
+                
+                val decodeOptions = BitmapFactory.Options().apply { inSampleSize = sampleSize }
+                val bitmap = BitmapFactory.decodeByteArray(it.data, 0, it.data.size, decodeOptions)
+                
                 FileOutputStream(symphony.database.artworkCache.get(name)).use { writer ->
                     ImagePreserver
                         .resize(bitmap, quality)
@@ -154,15 +163,23 @@ data class Song(
                 name
             }
 
-            // Overture: Fallback to Android's native retriever if Metaphony fails to extract the picture
             if (coverFile == null) {
                 val retriever = MediaMetadataRetriever()
                 try {
                     retriever.setDataSource(symphony.applicationContext, file.uri)
                     coverFile = retriever.embeddedPicture?.let {
-                        val bitmap = BitmapFactory.decodeByteArray(it, 0, it.size)
                         val quality = symphony.settings.artworkQuality.value
                         val name = "$id.jpg"
+                        
+                        val boundsOptions = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                        BitmapFactory.decodeByteArray(it, 0, it.size, boundsOptions)
+                        val sampleSize = quality.maxSide?.let { side -> 
+                            ImagePreserver.calculateInSampleSize(boundsOptions, side, side) 
+                        } ?: 1
+                        
+                        val decodeOptions = BitmapFactory.Options().apply { inSampleSize = sampleSize }
+                        val bitmap = BitmapFactory.decodeByteArray(it, 0, it.size, decodeOptions)
+                        
                         FileOutputStream(symphony.database.artworkCache.get(name)).use { writer ->
                             ImagePreserver
                                 .resize(bitmap, quality)
@@ -216,9 +233,18 @@ data class Song(
             retriever.setDataSource(symphony.applicationContext, file.uri)
             val id = symphony.groove.song.idGenerator.next() + ".mr"
             val coverFile = retriever.embeddedPicture?.let {
-                val bitmap = BitmapFactory.decodeByteArray(it, 0, it.size)
                 val quality = symphony.settings.artworkQuality.value
                 val name = "$id.jpg"
+                
+                val boundsOptions = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                BitmapFactory.decodeByteArray(it, 0, it.size, boundsOptions)
+                val sampleSize = quality.maxSide?.let { side -> 
+                    ImagePreserver.calculateInSampleSize(boundsOptions, side, side) 
+                } ?: 1
+                
+                val decodeOptions = BitmapFactory.Options().apply { inSampleSize = sampleSize }
+                val bitmap = BitmapFactory.decodeByteArray(it, 0, it.size, decodeOptions)
+                
                 FileOutputStream(symphony.database.artworkCache.get(name)).use { writer ->
                     ImagePreserver
                         .resize(bitmap, quality)
