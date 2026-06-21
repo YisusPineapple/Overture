@@ -11,7 +11,6 @@ import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -410,7 +409,7 @@ fun NowPlayingSeekBar(context: ViewContext, activeColor: Color, textColor: Color
 }
 
 @Composable
-fun NowPlayingSeekBar(
+private fun NowPlayingSeekBar(
     ratio: Float,
     activeColor: Color,
     inactiveColor: Color,
@@ -451,7 +450,7 @@ fun NowPlayingSeekBar(
         label = "ThumbRadiusAnimation"
     )
 
-    BoxWithConstraints(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(sliderHeight),
