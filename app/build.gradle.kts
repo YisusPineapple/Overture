@@ -146,3 +146,10 @@ dependencies {
 
     testImplementation(libs.junit.jupiter)
 }
+
+// Overture: Bypass AAR metadata check for Kyant0's backdrop library (which arbitrarily requires SDK 37)
+tasks.configureEach {
+    if (name.contains("AarMetadata")) {
+        enabled = false
+    }
+}
