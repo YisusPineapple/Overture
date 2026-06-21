@@ -18,8 +18,10 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Symphony"
         tools:targetApi="tiramisu">
+        
+        <!-- Overture: Use fully qualified class names since the namespace differs from the source package -->
         <activity
-            android:name=".MainActivity"
+            android:name="io.github.zyrouge.symphony.MainActivity"
             android:theme="@style/Theme.Symphony.SplashScreen"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode"
             android:windowSoftInputMode="adjustResize"
@@ -34,10 +36,11 @@
                 android:name="android.app.lib_name"
                 android:value="" />
         </activity>
-        <activity android:name=".ErrorActivity" />
+        
+        <activity android:name="io.github.zyrouge.symphony.ErrorActivity" />
 
         <service
-            android:name=".services.radio.RadioNotificationService"
+            android:name="io.github.zyrouge.symphony.services.radio.RadioNotificationService"
             android:foregroundServiceType="mediaPlayback"
             android:stopWithTask="true" />
     </application>
