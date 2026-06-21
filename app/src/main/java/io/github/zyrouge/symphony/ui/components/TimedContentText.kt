@@ -4,7 +4,6 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -68,7 +67,7 @@ data class TimedContentTextStyle(
                 highlighted = it.copy(fontWeight = FontWeight.SemiBold),
                 active = it.copy(fontWeight = FontWeight.Bold),
                 inactive = it.copy(fontWeight = FontWeight.Normal),
-                spacing = 16.dp, 
+                spacing = 20.dp, // Increased from 16.dp for cleaner vertical rhythm between lines
             )
         }
     }
@@ -93,7 +92,7 @@ fun TimedContentText(
         }
     }
     var activeIndex by remember { mutableIntStateOf(-1) }
-    
+
     val playbackPosition by context.symphony.radio.observatory.playbackPosition.collectAsState()
     val currentPosition = playbackPosition.played
 
@@ -132,19 +131,25 @@ fun TimedContentText(
             val highlight = !content.isSynced || i < activeIndex
             val active = i == activeIndex
 
+            // M3E spring for scale: medium bounce imparts physical weight to the focus transition
             val scale by animateFloatAsState(
                 targetValue = if (active) 1.05f else 0.95f,
                 animationSpec = spring(
                     dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessLow
+                    stiffness = Spring.StiffnessLow,
                 ),
-                label = "LyricsScale"
+                label = "LyricsScale",
             )
-            
+
+            // M3E spring for alpha: NoBouncy prevents the value from overshooting outside [0f, 1f]
+            // All non-active lines are uniformly dimmed — binary focused/unfocused contrast
             val alpha by animateFloatAsState(
-                targetValue = if (active) 1f else if (highlight) 0.6f else 0.3f,
-                animationSpec = tween(300),
-                label = "LyricsAlpha"
+                targetValue = if (active) 1f else 0.3f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessMedium,
+                ),
+                label = "LyricsAlpha",
             )
 
             val textStyle by animateTextStyleAsState(
@@ -181,10 +186,18 @@ fun TimedContentText(
             // Overture: Word-by-word Karaoke rendering
             if (active && line.words.isNotEmpty()) {
                 val annotatedString = buildAnnotatedString {
-                    line.words.forEach { word ->
-                        val color = if (currentPosition >= word.time) style.active.color else style.inactive.color
-                        withStyle(SpanStyle(color = color)) {
+                    line.words.forEachIndexed { wordIndex, word ->
+                        val wordColor = if (currentPosition >= word.time) {
+                            style.active.color
+                        } else {
+                            style.inactive.color
+                        }
+                        withStyle(SpanStyle(color = wordColor)) {
                             append(word.text)
+                        }
+                        // Append a whitespace separator between tokens when the word text has no trailing space
+                        if (wordIndex < line.words.size - 1 && !word.text.endsWith(" ")) {
+                            append(" ")
                         }
                     }
                 }

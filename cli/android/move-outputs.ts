@@ -20,7 +20,7 @@ const main = async () => {
             ),
             path.join(
                 Paths.distDir,
-                `symphony-v${APP_VERSION_NAME}-${abi}.apk`,
+                `overture-v${APP_VERSION_NAME}-${abi}.apk`,
             ),
         );
     }
@@ -29,7 +29,7 @@ const main = async () => {
             Paths.appDir,
             `build/outputs/bundle/${APP_BUILD_TYPE}/app-${APP_BUILD_TYPE}.aab`,
         ),
-        path.join(Paths.distDir, `symphony-v${APP_VERSION_NAME}.aab`),
+        path.join(Paths.distDir, `overture-v${APP_VERSION_NAME}.aab`),
     );
     await moveZipped(
         path.join(
