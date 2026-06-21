@@ -16,7 +16,7 @@ import android.support.v4.media.session.PlaybackStateCompat
 import android.view.KeyEvent
 import androidx.activity.result.contract.ActivityResultContract
 import androidx.palette.graphics.Palette
-import io.github.zyrouge.symphony.R
+import com.yisuspineapple.overture.R
 import io.github.zyrouge.symphony.Symphony
 import io.github.zyrouge.symphony.services.groove.Song
 import kotlinx.coroutines.Dispatchers
@@ -104,7 +104,6 @@ class RadioSession(val symphony: Symphony) {
                     symphony.radio.seek(pos)
                 }
 
-                // Overture: Route Custom Actions from Android 13+ Notifications
                 override fun onCustomAction(action: String, extras: Bundle?) {
                     super.onCustomAction(action, extras)
                     handleAction(action)

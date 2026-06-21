@@ -55,6 +55,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.zyrouge.symphony.services.groove.Groove
 import io.github.zyrouge.symphony.ui.components.AlbumArtistDropdownMenu
@@ -342,7 +343,6 @@ fun SearchView(context: ViewContext, route: SearchViewRoute) {
                             }
 
                             else -> {
-                                // Overture: Redesigned Search Results using LazyColumn and LazyRows for Landscape support
                                 LazyColumn(
                                     contentPadding = PaddingValues(bottom = 140.dp)
                                 ) {

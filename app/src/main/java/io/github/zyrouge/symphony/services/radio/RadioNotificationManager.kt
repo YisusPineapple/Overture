@@ -8,7 +8,7 @@ import androidx.core.app.NotificationChannelCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
-import io.github.zyrouge.symphony.R
+import com.yisuspineapple.overture.R
 import io.github.zyrouge.symphony.Symphony
 
 class RadioNotificationManager(val symphony: Symphony) {
@@ -62,7 +62,6 @@ class RadioNotificationManager(val symphony: Symphony) {
         try {
             manager.notify(RadioNotification.NOTIFICATION_ID, notification)
         } catch (_: SecurityException) {
-            // NOTE: the notification updates even without permission...
         }
     }
 
@@ -80,7 +79,6 @@ class RadioNotificationManager(val symphony: Symphony) {
             return
         }
         val intent = Intent(symphony.applicationContext, RadioNotificationService::class.java)
-        // M3E/Performance: Use ContextCompat to support API 24 without runtime crashes
         ContextCompat.startForegroundService(symphony.applicationContext, intent)
         state = State.PREPARING
     }

@@ -3,8 +3,8 @@ package io.github.zyrouge.symphony.services.radio
 import android.app.PendingIntent
 import android.content.Intent
 import androidx.core.app.NotificationCompat
+import com.yisuspineapple.overture.R
 import io.github.zyrouge.symphony.MainActivity
-import io.github.zyrouge.symphony.R
 import io.github.zyrouge.symphony.Symphony
 import io.github.zyrouge.symphony.utils.Logger
 
@@ -44,7 +44,6 @@ class RadioNotification(private val symphony: Symphony) {
             setLargeIcon(req.artworkBitmap)
             setOngoing(req.isPlaying)
             
-            // Action 0: Previous
             addAction(
                 createAction(
                     R.drawable.material_icon_skip_previous,
@@ -52,7 +51,6 @@ class RadioNotification(private val symphony: Symphony) {
                     RadioSession.ACTION_PREVIOUS
                 )
             )
-            // Action 1: Play/Pause
             addAction(
                 when {
                     req.isPlaying -> createAction(
@@ -68,7 +66,6 @@ class RadioNotification(private val symphony: Symphony) {
                     )
                 }
             )
-            // Action 2: Next
             addAction(
                 createAction(
                     R.drawable.material_icon_skip_next,
@@ -76,7 +73,6 @@ class RadioNotification(private val symphony: Symphony) {
                     RadioSession.ACTION_NEXT
                 )
             )
-            // Action 3: Like (Native Overture Feature)
             addAction(
                 createAction(
                     if (isFavorite) R.drawable.ic_heart_filled else R.drawable.ic_heart,
@@ -84,10 +80,9 @@ class RadioNotification(private val symphony: Symphony) {
                     RadioSession.ACTION_FAVORITE
                 )
             )
-            // Action 4: Stop
             addAction(
                 createAction(
-                    R.drawable.material_icon_stop,
+                    R.drawable.material_icon_close,
                     symphony.t.Stop,
                     RadioSession.ACTION_STOP
                 )
@@ -96,7 +91,6 @@ class RadioNotification(private val symphony: Symphony) {
             setStyle(
                 androidx.media.app.NotificationCompat.MediaStyle()
                     .setMediaSession(symphony.radio.session.mediaSession.sessionToken)
-                    // Compact view shows Prev (0), Play/Pause (1), and Next (2). Expand to see Like (3) and Stop (4)
                     .setShowActionsInCompactView(0, 1, 2)
             )
         }

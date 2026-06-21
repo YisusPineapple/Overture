@@ -4,7 +4,7 @@ import android.content.ContentResolver
 import android.content.res.Resources
 import android.net.Uri
 import coil.request.ImageRequest
-import io.github.zyrouge.symphony.R
+import com.yisuspineapple.overture.R
 import io.github.zyrouge.symphony.Symphony
 import io.github.zyrouge.symphony.ui.theme.isLight
 import io.github.zyrouge.symphony.ui.theme.toColorSchemeMode

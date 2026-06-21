@@ -5,7 +5,7 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDirection
-import io.github.zyrouge.symphony.R
+import com.yisuspineapple.overture.R
 
 class SymphonyFont(
     val fontName: String,
@@ -62,7 +62,7 @@ object SymphonyBuiltinFonts {
 }
 
 object SymphonyTypography {
-    val defaultFont = SymphonyBuiltinFonts.ProductSans // Overture: Product Sans by default for premium identity
+    val defaultFont = SymphonyBuiltinFonts.ProductSans
     val all = mapOf(
         SymphonyBuiltinFonts.Inter.fontName to SymphonyBuiltinFonts.Inter,
         SymphonyBuiltinFonts.Poppins.fontName to SymphonyBuiltinFonts.Poppins,
