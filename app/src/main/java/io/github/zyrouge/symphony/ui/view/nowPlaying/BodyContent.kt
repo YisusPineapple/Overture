@@ -410,7 +410,7 @@ fun NowPlayingSeekBar(context: ViewContext, activeColor: Color, textColor: Color
 }
 
 @Composable
-private fun NowPlayingSeekBar(
+fun NowPlayingSeekBar(
     ratio: Float,
     activeColor: Color,
     inactiveColor: Color,
@@ -428,13 +428,13 @@ private fun NowPlayingSeekBar(
     
     // Overture: M3E Morphing Thumb & Track
     val trackHeight by animateDpAsState(
-        targetValue = if (dragging) 16.dp else 6.dp,
+        targetValue = if (dragging) 16.dp else 4.dp,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
         label = "TrackHeightAnimation"
     )
     
     val thumbWidth by animateDpAsState(
-        targetValue = if (dragging) 6.dp else 12.dp,
+        targetValue = if (dragging) 8.dp else 12.dp,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
         label = "ThumbWidthAnimation"
     )
@@ -446,7 +446,7 @@ private fun NowPlayingSeekBar(
     )
     
     val thumbRadius by animateDpAsState(
-        targetValue = if (dragging) 3.dp else 6.dp,
+        targetValue = if (dragging) 4.dp else 6.dp,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
         label = "ThumbRadiusAnimation"
     )

@@ -2,6 +2,7 @@ package io.github.zyrouge.symphony.ui.view
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
@@ -210,8 +211,8 @@ fun QueueView(context: ViewContext) {
                                 val translationY = if (isDragging) dragOffset else 0f
 
                                 // Overture: M3E Floating Card Visuals for Drag & Drop
-                                val elevation by animateFloatAsState(
-                                    targetValue = if (isDragging) 16.dp.toPx() else 0f,
+                                val elevation by animateDpAsState(
+                                    targetValue = if (isDragging) 16.dp else 0.dp,
                                     label = "dragElevation"
                                 )
                                 val cardBgColor by animateColorAsState(
@@ -235,7 +236,7 @@ fun QueueView(context: ViewContext) {
                                         .zIndex(zIndex)
                                         .graphicsLayer {
                                             this.translationY = translationY
-                                            this.shadowElevation = elevation
+                                            this.shadowElevation = elevation.toPx()
                                             this.alpha = if (isTarget) 0.3f else 1f // Dim the target slot
                                         }
                                         .background(cardBgColor, RoundedCornerShape(if (isDragging) 16.dp else 0.dp))

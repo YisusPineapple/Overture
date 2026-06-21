@@ -22,6 +22,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -93,6 +94,7 @@ fun LyricsView(context: ViewContext) {
                 when {
                     data != null -> {
                         val dynamicColor = data.dominantColor ?: MaterialTheme.colorScheme.primary
+                        val textColor = data.contentColor ?: MaterialTheme.colorScheme.onSurface
                         
                         Column {
                             Box(modifier = Modifier.weight(1f)) {
@@ -118,9 +120,9 @@ fun LyricsView(context: ViewContext) {
                                 )
                             }
                             Spacer(modifier = Modifier.height(defaultHorizontalPadding + 8.dp))
-                            NowPlayingSeekBar(context, dynamicColor)
+                            NowPlayingSeekBar(context, activeColor = dynamicColor, textColor = textColor)
                             Spacer(modifier = Modifier.height(defaultHorizontalPadding + 8.dp))
-                            NowPlayingTraditionalControls(context, data = data, dynamicColor = dynamicColor)
+                            NowPlayingTraditionalControls(context, data = data, activeColor = dynamicColor, textColor = textColor)
                             Spacer(modifier = Modifier.height(defaultHorizontalPadding + 8.dp))
                         }
                     }
