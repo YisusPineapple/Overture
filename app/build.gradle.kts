@@ -136,7 +136,6 @@ dependencies {
     implementation(libs.media3.session)
     implementation(libs.okhttp3)
     implementation(libs.palette)
-    implementation(libs.backdrop)
     ksp(libs.room.compiler)
     implementation(libs.room.ktx)
     implementation(libs.room.runtime)
@@ -145,11 +144,4 @@ dependencies {
     debugImplementation(libs.compose.ui.test.manifest)
 
     testImplementation(libs.junit.jupiter)
-}
-
-// Overture: Bypass AAR metadata check for Kyant0's backdrop library (which arbitrarily requires SDK 37)
-tasks.configureEach {
-    if (name.contains("AarMetadata")) {
-        enabled = false
-    }
 }
