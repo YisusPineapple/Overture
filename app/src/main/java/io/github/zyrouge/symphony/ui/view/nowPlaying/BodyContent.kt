@@ -79,7 +79,8 @@ fun NowPlayingBodyContent(context: ViewContext, data: NowPlayingData) {
         derivedStateOf { favoriteSongIds.contains(data.song.id) }
     }
     
-    val dynamicColor = data.dominantColor ?: MaterialTheme.colorScheme.primary
+    val textColor = data.contentColor ?: MaterialTheme.colorScheme.onSurface
+    val activeColor = data.contentColor ?: MaterialTheme.colorScheme.primary
 
     data.run {
         Column {
@@ -97,7 +98,7 @@ fun NowPlayingBodyContent(context: ViewContext, data: NowPlayingData) {
                         Text(
                             targetStateSong.title,
                             style = MaterialTheme.typography.headlineSmall
-                                .copy(fontWeight = FontWeight.Bold),
+                                .copy(fontWeight = FontWeight.Bold, color = textColor),
                             maxLines = 3,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -106,6 +107,7 @@ fun NowPlayingBodyContent(context: ViewContext, data: NowPlayingData) {
                                 targetStateSong.artists.forEachIndexed { i, it ->
                                     Text(
                                         it,
+                                        style = MaterialTheme.typography.bodyLarge.copy(color = textColor.copy(alpha = 0.7f)),
                                         maxLines = 2,
                                         overflow = TextOverflow.Ellipsis,
                                         modifier = Modifier.pointerInput(Unit) {
@@ -115,18 +117,17 @@ fun NowPlayingBodyContent(context: ViewContext, data: NowPlayingData) {
                                         },
                                     )
                                     if (i != targetStateSong.artists.size - 1) {
-                                        Text(", ")
+                                        Text(", ", color = textColor.copy(alpha = 0.7f))
                                     }
                                 }
                             }
                         }
                         if (data.showSongAdditionalInfo) {
                             targetStateSong.toSamplingInfoString(context.symphony)?.let {
-                                val localContentColor = LocalContentColor.current
                                 Text(
                                     it,
                                     style = MaterialTheme.typography.labelSmall
-                                        .copy(color = localContentColor.copy(alpha = 0.7f)),
+                                        .copy(color = textColor.copy(alpha = 0.5f)),
                                     modifier = Modifier.padding(top = 4.dp),
                                 )
                             }
@@ -149,10 +150,10 @@ fun NowPlayingBodyContent(context: ViewContext, data: NowPlayingData) {
                             isFavorite -> Icon(
                                 Icons.Filled.Favorite,
                                 null,
-                                tint = dynamicColor,
+                                tint = activeColor,
                             )
 
-                            else -> Icon(Icons.Filled.FavoriteBorder, null)
+                            else -> Icon(Icons.Filled.FavoriteBorder, null, tint = textColor)
                         }
                     }
 
@@ -162,7 +163,7 @@ fun NowPlayingBodyContent(context: ViewContext, data: NowPlayingData) {
                             showOptionsMenu = !showOptionsMenu
                         }
                     ) {
-                        Icon(Icons.Filled.MoreVert, null)
+                        Icon(Icons.Filled.MoreVert, null, tint = textColor)
                         SongDropdownMenu(
                             context,
                             song,
@@ -177,29 +178,31 @@ fun NowPlayingBodyContent(context: ViewContext, data: NowPlayingData) {
             }
             Spacer(modifier = Modifier.height(defaultHorizontalPadding + 8.dp))
             
-            // Overture: Redesigned Controls Layouts
             when (controlsLayout) {
                 NowPlayingControlsLayout.CompactLeft -> NowPlayingCompactControls(
                     context,
                     data = data,
-                    dynamicColor = dynamicColor,
+                    activeColor = activeColor,
+                    textColor = textColor,
                 )
 
                 NowPlayingControlsLayout.CompactRight -> NowPlayingCompactControls(
                     context,
                     data = data,
-                    dynamicColor = dynamicColor,
+                    activeColor = activeColor,
+                    textColor = textColor,
                     modifier = Modifier.align(Alignment.End)
                 )
 
                 NowPlayingControlsLayout.Traditional -> NowPlayingTraditionalControls(
                     context,
                     data = data,
-                    dynamicColor = dynamicColor,
+                    activeColor = activeColor,
+                    textColor = textColor,
                 )
             }
             Spacer(modifier = Modifier.height(defaultHorizontalPadding + 8.dp))
-            NowPlayingSeekBar(context, dynamicColor)
+            NowPlayingSeekBar(context, activeColor, textColor)
             Spacer(modifier = Modifier.height(defaultHorizontalPadding))
         }
     }
@@ -209,7 +212,8 @@ fun NowPlayingBodyContent(context: ViewContext, data: NowPlayingData) {
 fun NowPlayingCompactControls(
     context: ViewContext,
     data: NowPlayingData,
-    dynamicColor: Color,
+    activeColor: Color,
+    textColor: Color,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -221,7 +225,7 @@ fun NowPlayingCompactControls(
             Icon(
                 Icons.Filled.Shuffle, 
                 null, 
-                tint = if (data.currentShuffleMode) dynamicColor else LocalContentColor.current.copy(alpha = 0.5f)
+                tint = if (data.currentShuffleMode) activeColor else textColor.copy(alpha = 0.5f)
             )
         }
         
@@ -230,14 +234,16 @@ fun NowPlayingCompactControls(
             data = data,
             style = NowPlayingControlButtonStyle(
                 color = NowPlayingControlButtonColor.Primary,
-                customColor = dynamicColor,
+                customBgColor = activeColor,
+                customIconColor = data.dominantColor ?: MaterialTheme.colorScheme.onPrimary
             ),
         )
         NowPlayingSkipPreviousButton(
             context,
             data = data,
             style = NowPlayingControlButtonStyle(
-                color = NowPlayingControlButtonColor.Surface,
+                color = NowPlayingControlButtonColor.Transparent,
+                customIconColor = textColor
             ),
         )
         if (data.enableSeekControls) {
@@ -245,14 +251,16 @@ fun NowPlayingCompactControls(
                 context,
                 data = data,
                 style = NowPlayingControlButtonStyle(
-                    color = NowPlayingControlButtonColor.Surface,
+                    color = NowPlayingControlButtonColor.Transparent,
+                    customIconColor = textColor
                 ),
             )
             NowPlayingFastForwardButton(
                 context,
                 data = data,
                 style = NowPlayingControlButtonStyle(
-                    color = NowPlayingControlButtonColor.Surface,
+                    color = NowPlayingControlButtonColor.Transparent,
+                    customIconColor = textColor
                 ),
             )
         }
@@ -260,7 +268,8 @@ fun NowPlayingCompactControls(
             context,
             data = data,
             style = NowPlayingControlButtonStyle(
-                color = NowPlayingControlButtonColor.Surface,
+                color = NowPlayingControlButtonColor.Transparent,
+                customIconColor = textColor
             ),
         )
         
@@ -268,14 +277,14 @@ fun NowPlayingCompactControls(
             Icon(
                 if (data.currentLoopMode == RadioQueue.LoopMode.Song) Icons.Filled.RepeatOne else Icons.Filled.Repeat, 
                 null, 
-                tint = if (data.currentLoopMode != RadioQueue.LoopMode.None) dynamicColor else LocalContentColor.current.copy(alpha = 0.5f)
+                tint = if (data.currentLoopMode != RadioQueue.LoopMode.None) activeColor else textColor.copy(alpha = 0.5f)
             )
         }
     }
 }
 
 @Composable
-fun NowPlayingTraditionalControls(context: ViewContext, data: NowPlayingData, dynamicColor: Color) {
+fun NowPlayingTraditionalControls(context: ViewContext, data: NowPlayingData, activeColor: Color, textColor: Color) {
     Row(
         modifier = Modifier
             .padding(horizontal = defaultHorizontalPadding)
@@ -288,7 +297,7 @@ fun NowPlayingTraditionalControls(context: ViewContext, data: NowPlayingData, dy
                 Icons.Filled.Shuffle, 
                 null, 
                 modifier = Modifier.size(28.dp),
-                tint = if (data.currentShuffleMode) dynamicColor else LocalContentColor.current.copy(alpha = 0.5f)
+                tint = if (data.currentShuffleMode) activeColor else textColor.copy(alpha = 0.5f)
             )
         }
         
@@ -297,7 +306,8 @@ fun NowPlayingTraditionalControls(context: ViewContext, data: NowPlayingData, dy
             data = data,
             style = NowPlayingControlButtonStyle(
                 color = NowPlayingControlButtonColor.Transparent,
-                size = NowPlayingControlButtonSize.Large
+                size = NowPlayingControlButtonSize.Large,
+                customIconColor = textColor
             ),
         )
         
@@ -307,6 +317,7 @@ fun NowPlayingTraditionalControls(context: ViewContext, data: NowPlayingData, dy
                 data = data,
                 style = NowPlayingControlButtonStyle(
                     color = NowPlayingControlButtonColor.Transparent,
+                    customIconColor = textColor
                 ),
             )
         }
@@ -316,8 +327,9 @@ fun NowPlayingTraditionalControls(context: ViewContext, data: NowPlayingData, dy
             data = data,
             style = NowPlayingControlButtonStyle(
                 color = NowPlayingControlButtonColor.Primary,
-                customColor = dynamicColor,
-                size = NowPlayingControlButtonSize.Giant, // Overture: Massive play button for traditional layout
+                customBgColor = activeColor,
+                customIconColor = data.dominantColor ?: MaterialTheme.colorScheme.onPrimary,
+                size = NowPlayingControlButtonSize.Giant,
             ),
         )
         
@@ -327,6 +339,7 @@ fun NowPlayingTraditionalControls(context: ViewContext, data: NowPlayingData, dy
                 data = data,
                 style = NowPlayingControlButtonStyle(
                     color = NowPlayingControlButtonColor.Transparent,
+                    customIconColor = textColor
                 ),
             )
         }
@@ -336,7 +349,8 @@ fun NowPlayingTraditionalControls(context: ViewContext, data: NowPlayingData, dy
             data = data,
             style = NowPlayingControlButtonStyle(
                 color = NowPlayingControlButtonColor.Transparent,
-                size = NowPlayingControlButtonSize.Large
+                size = NowPlayingControlButtonSize.Large,
+                customIconColor = textColor
             ),
         )
         
@@ -345,14 +359,14 @@ fun NowPlayingTraditionalControls(context: ViewContext, data: NowPlayingData, dy
                 if (data.currentLoopMode == RadioQueue.LoopMode.Song) Icons.Filled.RepeatOne else Icons.Filled.Repeat, 
                 null, 
                 modifier = Modifier.size(28.dp),
-                tint = if (data.currentLoopMode != RadioQueue.LoopMode.None) dynamicColor else LocalContentColor.current.copy(alpha = 0.5f)
+                tint = if (data.currentLoopMode != RadioQueue.LoopMode.None) activeColor else textColor.copy(alpha = 0.5f)
             )
         }
     }
 }
 
 @Composable
-fun NowPlayingSeekBar(context: ViewContext, dynamicColor: Color) {
+fun NowPlayingSeekBar(context: ViewContext, activeColor: Color, textColor: Color) {
     val playbackPosition by context.symphony.radio.observatory.playbackPosition.collectAsState()
 
     Row(
@@ -363,14 +377,15 @@ fun NowPlayingSeekBar(context: ViewContext, dynamicColor: Color) {
         var seekRatio by remember { mutableStateOf<Float?>(null) }
 
         NowPlayingPlaybackPositionText(
-            seekRatio?.let { it * playbackPosition.total }?.toLong()
-                ?: playbackPosition.played,
-            Alignment.CenterStart,
+            duration = seekRatio?.let { it * playbackPosition.total }?.toLong() ?: playbackPosition.played,
+            alignment = Alignment.CenterStart,
+            textColor = textColor
         )
         Box(modifier = Modifier.weight(1f)) {
             NowPlayingSeekBar(
                 ratio = playbackPosition.ratio,
-                dynamicColor = dynamicColor,
+                activeColor = activeColor,
+                inactiveColor = textColor.copy(alpha = 0.3f),
                 onSeekStart = {
                     seekRatio = 0f
                 },
@@ -387,8 +402,9 @@ fun NowPlayingSeekBar(context: ViewContext, dynamicColor: Color) {
             )
         }
         NowPlayingPlaybackPositionText(
-            playbackPosition.total,
-            Alignment.CenterEnd,
+            duration = playbackPosition.total,
+            alignment = Alignment.CenterEnd,
+            textColor = textColor
         )
     }
 }
@@ -396,31 +412,44 @@ fun NowPlayingSeekBar(context: ViewContext, dynamicColor: Color) {
 @Composable
 private fun NowPlayingSeekBar(
     ratio: Float,
-    dynamicColor: Color,
+    activeColor: Color,
+    inactiveColor: Color,
     onSeekStart: () -> Unit,
     onSeek: (Float) -> Unit,
     onSeekEnd: (Float) -> Unit,
     onSeekCancel: () -> Unit,
 ) {
-    val sliderHeight = 48.dp // Overture: Increased for better touch target
+    val sliderHeight = 48.dp 
     
     var dragging by remember { mutableStateOf(false) }
     var dragRatio by remember { mutableFloatStateOf(0f) }
     
     val currentRatio = if (dragging) dragRatio else ratio
     
-    // Overture: M3E Expressive Slider logic
+    // Overture: M3E Morphing Thumb & Track
     val trackHeight by animateDpAsState(
-        targetValue = if (dragging) 24.dp else 8.dp,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow
-        ),
+        targetValue = if (dragging) 16.dp else 6.dp,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
         label = "TrackHeightAnimation"
     )
     
-    val activeColor = dynamicColor
-    val inactiveColor = MaterialTheme.colorScheme.surfaceVariant
+    val thumbWidth by animateDpAsState(
+        targetValue = if (dragging) 6.dp else 12.dp,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+        label = "ThumbWidthAnimation"
+    )
+    
+    val thumbHeight by animateDpAsState(
+        targetValue = if (dragging) 24.dp else 12.dp,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+        label = "ThumbHeightAnimation"
+    )
+    
+    val thumbRadius by animateDpAsState(
+        targetValue = if (dragging) 3.dp else 6.dp,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+        label = "ThumbRadiusAnimation"
+    )
 
     BoxWithConstraints(
         modifier = Modifier
@@ -465,22 +494,38 @@ private fun NowPlayingSeekBar(
             val trackY = size.height / 2f
             val trackH = trackHeight.toPx()
             val cornerRadius = CornerRadius(trackH / 2f, trackH / 2f)
+            
+            // Padding to ensure thumb doesn't clip outside bounds
+            val maxThumbWidthPx = 12.dp.toPx()
+            val padding = maxThumbWidthPx / 2f
+            val usableWidth = size.width - maxThumbWidthPx
 
             // 1. Draw Inactive Track
             drawRoundRect(
                 color = inactiveColor,
-                topLeft = Offset(0f, trackY - trackH / 2f),
-                size = Size(size.width, trackH),
+                topLeft = Offset(padding, trackY - trackH / 2f),
+                size = Size(usableWidth, trackH),
                 cornerRadius = cornerRadius
             )
 
             // 2. Draw Active Track
-            val activeWidth = size.width * currentRatio
+            val activeWidth = usableWidth * currentRatio
             drawRoundRect(
                 color = activeColor,
-                topLeft = Offset(0f, trackY - trackH / 2f),
+                topLeft = Offset(padding, trackY - trackH / 2f),
                 size = Size(activeWidth, trackH),
                 cornerRadius = cornerRadius
+            )
+
+            // 3. Draw Morphing Thumb
+            drawRoundRect(
+                color = activeColor,
+                topLeft = Offset(
+                    x = padding + activeWidth - thumbWidth.toPx() / 2f,
+                    y = trackY - thumbHeight.toPx() / 2f
+                ),
+                size = Size(thumbWidth.toPx(), thumbHeight.toPx()),
+                cornerRadius = CornerRadius(thumbRadius.toPx(), thumbRadius.toPx())
             )
         }
     }
@@ -490,6 +535,7 @@ private fun NowPlayingSeekBar(
 private fun NowPlayingPlaybackPositionText(
     duration: Long,
     alignment: Alignment,
+    textColor: Color,
 ) {
     val textStyle = MaterialTheme.typography.labelMedium
     val durationFormatted = DurationUtils.formatMs(duration)
@@ -501,7 +547,7 @@ private fun NowPlayingPlaybackPositionText(
         )
         Text(
             durationFormatted,
-            style = MaterialTheme.typography.labelMedium
+            style = MaterialTheme.typography.labelMedium.copy(color = textColor)
         )
     }
 }
@@ -605,12 +651,13 @@ private enum class NowPlayingControlButtonColor {
 private enum class NowPlayingControlButtonSize {
     Default,
     Large,
-    Giant, // Overture: Added Giant size for Traditional layout
+    Giant,
 }
 
 private data class NowPlayingControlButtonStyle(
     val color: NowPlayingControlButtonColor,
-    val customColor: Color? = null,
+    val customBgColor: Color? = null,
+    val customIconColor: Color? = null,
     val size: NowPlayingControlButtonSize = NowPlayingControlButtonSize.Default,
 )
 
@@ -621,11 +668,11 @@ private fun NowPlayingControlButton(
     onClick: () -> Unit,
 ) {
     val backgroundColor = when (style.color) {
-        NowPlayingControlButtonColor.Primary -> style.customColor ?: MaterialTheme.colorScheme.primary
+        NowPlayingControlButtonColor.Primary -> style.customBgColor ?: MaterialTheme.colorScheme.primary
         NowPlayingControlButtonColor.Surface -> MaterialTheme.colorScheme.surfaceVariant
         NowPlayingControlButtonColor.Transparent -> Color.Transparent
     }
-    val contentColor = when (style.color) {
+    val contentColor = style.customIconColor ?: when (style.color) {
         NowPlayingControlButtonColor.Primary -> MaterialTheme.colorScheme.onPrimary
         else -> LocalContentColor.current
     }

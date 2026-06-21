@@ -40,7 +40,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
@@ -86,9 +85,21 @@ fun AnimatedNowPlayingBottomBar(context: ViewContext, insetPadding: Boolean = tr
     }
 
     val appearance by context.symphony.settings.bottomBarAppearance.flow.collectAsState()
+    val dominantColorInt by context.symphony.radio.observatory.dominantColor.collectAsState()
+    
+    val dynamicColor = remember(dominantColorInt) { 
+        dominantColorInt?.let { Color(it) } ?: Color.Unspecified 
+    }
+    
     val pillBackground = when (appearance) {
-        BottomBarAppearance.LiquidGlass -> MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
-        BottomBarAppearance.Solid -> MaterialTheme.colorScheme.surface
+        BottomBarAppearance.LiquidGlass -> {
+            if (dynamicColor != Color.Unspecified) dynamicColor.copy(alpha = 0.85f) 
+            else MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
+        }
+        BottomBarAppearance.Solid -> {
+            if (dynamicColor != Color.Unspecified) dynamicColor
+            else MaterialTheme.colorScheme.surface
+        }
     }
 
     AnimatedVisibility(
@@ -129,7 +140,6 @@ fun NowPlayingBottomBar(context: ViewContext, insetPadding: Boolean = true) {
         }
     }
     val isPlaying by context.symphony.radio.observatory.isPlaying.collectAsState()
-    
     val playbackPositionState = context.symphony.radio.observatory.playbackPosition.collectAsState()
     
     val showTrackControls by context.symphony.settings.miniPlayerTrackControls.flow.collectAsState()
@@ -137,9 +147,31 @@ fun NowPlayingBottomBar(context: ViewContext, insetPadding: Boolean = true) {
     val seekBackDuration by context.symphony.settings.seekBackDuration.flow.collectAsState()
     val seekForwardDuration by context.symphony.settings.seekForwardDuration.flow.collectAsState()
 
+    val appearance by context.symphony.settings.bottomBarAppearance.flow.collectAsState()
     val dominantColorInt by context.symphony.radio.observatory.dominantColor.collectAsState()
-    val surfaceTint = MaterialTheme.colorScheme.surfaceTint
-    val dynamicColor = remember(dominantColorInt) { dominantColorInt?.let { Color(it) } ?: surfaceTint }
+    
+    val dynamicColor = remember(dominantColorInt) { 
+        dominantColorInt?.let { Color(it) } ?: Color.Unspecified 
+    }
+    
+    val contentColor = remember(dominantColorInt) {
+        dominantColorInt?.let {
+            if (androidx.core.graphics.ColorUtils.calculateLuminance(it) > 0.5) Color.Black else Color.White
+        } ?: Color.Unspecified
+    }
+
+    val pillBackground = when (appearance) {
+        BottomBarAppearance.LiquidGlass -> {
+            if (dynamicColor != Color.Unspecified) dynamicColor.copy(alpha = 0.85f) 
+            else MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
+        }
+        BottomBarAppearance.Solid -> {
+            if (dynamicColor != Color.Unspecified) dynamicColor
+            else MaterialTheme.colorScheme.surface
+        }
+    }
+    
+    val textColor = if (contentColor != Color.Unspecified) contentColor else MaterialTheme.colorScheme.onSurface
 
     AnimatedContent(
         modifier = Modifier.fillMaxWidth(),
@@ -157,13 +189,13 @@ fun NowPlayingBottomBar(context: ViewContext, insetPadding: Boolean = true) {
                 Box(
                     modifier = Modifier
                         .padding(horizontal = 24.dp)
-                        .background(dynamicColor.copy(alpha = 0.25f), RoundedCornerShape(1.dp))
+                        .background(textColor.copy(alpha = 0.25f), RoundedCornerShape(1.dp))
                         .height(2.dp)
                         .fillMaxWidth()
                         .drawWithContent {
                             drawContent()
                             drawRoundRect(
-                                color = dynamicColor,
+                                color = textColor,
                                 size = Size(size.width * playbackPositionState.value.ratio, size.height),
                                 cornerRadius = CornerRadius(1.dp.toPx(), 1.dp.toPx())
                             )
@@ -221,14 +253,19 @@ fun NowPlayingBottomBar(context: ViewContext, insetPadding: Boolean = true) {
                                 from togetherWith to
                             },
                         ) { song ->
-                            NowPlayingBottomBarContent(context, song = song)
+                            NowPlayingBottomBarContent(
+                                context, 
+                                song = song, 
+                                textColor = textColor,
+                                pillBackground = pillBackground
+                            )
                         }
                         Spacer(modifier = Modifier.width(15.dp))
                         if (showTrackControls) {
                             IconButton(
                                 onClick = { context.symphony.radio.shorty.previous() }
                             ) {
-                                Icon(Icons.Filled.SkipPrevious, null)
+                                Icon(Icons.Filled.SkipPrevious, null, tint = textColor)
                             }
                         }
                         if (showSeekControls) {
@@ -237,7 +274,7 @@ fun NowPlayingBottomBar(context: ViewContext, insetPadding: Boolean = true) {
                                     context.symphony.radio.shorty.seekFromCurrent(-seekBackDuration)
                                 }
                             ) {
-                                Icon(Icons.Filled.FastRewind, null)
+                                Icon(Icons.Filled.FastRewind, null, tint = textColor)
                             }
                         }
                         IconButton(
@@ -249,7 +286,7 @@ fun NowPlayingBottomBar(context: ViewContext, insetPadding: Boolean = true) {
                                     else -> Icons.Filled.Pause
                                 },
                                 null,
-                                tint = dynamicColor
+                                tint = textColor
                             )
                         }
                         if (showSeekControls) {
@@ -260,14 +297,14 @@ fun NowPlayingBottomBar(context: ViewContext, insetPadding: Boolean = true) {
                                     )
                                 }
                             ) {
-                                Icon(Icons.Filled.FastForward, null)
+                                Icon(Icons.Filled.FastForward, null, tint = textColor)
                             }
                         }
                         if (showTrackControls) {
                             IconButton(
                                 onClick = { context.symphony.radio.shorty.skip() }
                             ) {
-                                Icon(Icons.Filled.SkipNext, null)
+                                Icon(Icons.Filled.SkipNext, null, tint = textColor)
                             }
                         }
                         Spacer(modifier = Modifier.width(8.dp))
@@ -282,7 +319,12 @@ fun NowPlayingBottomBar(context: ViewContext, insetPadding: Boolean = true) {
 }
 
 @Composable
-private fun NowPlayingBottomBarContent(context: ViewContext, song: Song) {
+private fun NowPlayingBottomBarContent(
+    context: ViewContext, 
+    song: Song, 
+    textColor: Color,
+    pillBackground: Color
+) {
     val coroutineScope = rememberCoroutineScope()
     
     BoxWithConstraints(modifier = Modifier.clipToBounds()) {
@@ -337,13 +379,15 @@ private fun NowPlayingBottomBarContent(context: ViewContext, song: Song) {
                 NowPlayingBottomBarContentText(
                     context,
                     song.title,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodyMedium.copy(color = textColor),
+                    pillBackground = pillBackground
                 )
                 if (song.artists.isNotEmpty()) {
                     NowPlayingBottomBarContentText(
                         context,
                         song.artists.joinToString(),
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.bodySmall.copy(color = textColor.copy(alpha = 0.7f)),
+                        pillBackground = pillBackground
                     )
                 }
             }
@@ -356,6 +400,7 @@ private fun NowPlayingBottomBarContentText(
     context: ViewContext,
     text: String,
     style: TextStyle,
+    pillBackground: Color
 ) {
     val textMarquee by context.symphony.settings.miniPlayerTextMarquee.flow.collectAsState()
     var showOverlay by remember { mutableStateOf(false) }
@@ -384,8 +429,6 @@ private fun NowPlayingBottomBarContentText(
             enter = FadeTransition.enterTransition(),
             exit = FadeTransition.exitTransition(),
         ) {
-            val backgroundColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)
-
             Row {
                 Box(
                     modifier = Modifier
@@ -393,7 +436,7 @@ private fun NowPlayingBottomBarContentText(
                         .fillMaxHeight()
                         .background(
                             brush = Brush.horizontalGradient(
-                                colors = listOf(backgroundColor, Color.Transparent)
+                                colors = listOf(pillBackground, Color.Transparent)
                             )
                         )
                 )
@@ -404,7 +447,7 @@ private fun NowPlayingBottomBarContentText(
                         .fillMaxHeight()
                         .background(
                             brush = Brush.horizontalGradient(
-                                colors = listOf(Color.Transparent, backgroundColor)
+                                colors = listOf(Color.Transparent, pillBackground)
                             )
                         )
                 )

@@ -36,6 +36,7 @@ data class NowPlayingData(
     val controlsLayout: NowPlayingControlsLayout,
     val lyricsLayout: NowPlayingLyricsLayout,
     val dominantColor: Color?,
+    val contentColor: Color?,
 )
 
 data class NowPlayingStates(
@@ -104,6 +105,13 @@ fun NowPlayingObserver(
     
     val dominantColorInt by context.symphony.radio.observatory.dominantColor.collectAsState()
     val dominantColor = remember(dominantColorInt) { dominantColorInt?.let { Color(it) } }
+    
+    // Overture: Calculate high-contrast content color based on luminance
+    val contentColor = remember(dominantColorInt) {
+        dominantColorInt?.let {
+            if (androidx.core.graphics.ColorUtils.calculateLuminance(it) > 0.5) Color.Black else Color.White
+        }
+    }
 
     val data = when {
         isViable -> NowPlayingData(
@@ -126,6 +134,7 @@ fun NowPlayingObserver(
             controlsLayout = controlsLayout,
             lyricsLayout = lyricsLayout,
             dominantColor = dominantColor,
+            contentColor = contentColor,
         )
 
         else -> null

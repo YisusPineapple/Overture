@@ -72,6 +72,9 @@ fun NowPlayingBodyBottomBar(
     var showPitchDialog by remember { mutableStateOf(false) }
     var showExtraOptions by remember { mutableStateOf(false) }
 
+    val textColor = data.contentColor ?: MaterialTheme.colorScheme.onSurface
+    val activeColor = data.contentColor ?: MaterialTheme.colorScheme.primary
+
     data.run {
         Row(
             modifier = Modifier
@@ -93,6 +96,7 @@ fun NowPlayingBodyBottomBar(
                     Icons.AutoMirrored.Filled.Sort,
                     null,
                     modifier = Modifier.size(24.dp),
+                    tint = textColor
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
@@ -101,6 +105,7 @@ fun NowPlayingBodyBottomBar(
                         queueSize.toString(),
                     ),
                     overflow = TextOverflow.Ellipsis,
+                    color = textColor
                 )
             }
             
@@ -129,8 +134,8 @@ fun NowPlayingBodyBottomBar(
                             null,
                             modifier = Modifier.size(28.dp),
                             tint = when {
-                                showLyrics -> MaterialTheme.colorScheme.primary
-                                else -> LocalContentColor.current
+                                showLyrics -> activeColor
+                                else -> textColor
                             }
                         )
                     }
@@ -142,7 +147,7 @@ fun NowPlayingBodyBottomBar(
                         showExtraOptions = !showExtraOptions
                     }
                 ) {
-                    Icon(Icons.Outlined.MoreHoriz, null, modifier = Modifier.size(28.dp))
+                    Icon(Icons.Outlined.MoreHoriz, null, modifier = Modifier.size(28.dp), tint = textColor)
                 }
             }
         }
