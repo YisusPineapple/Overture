@@ -5,6 +5,7 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Box
@@ -24,6 +25,7 @@ import androidx.compose.material.icons.filled.ClearAll
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.SelectAll
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -69,7 +71,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 object QueueViewRoute
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun QueueView(context: ViewContext) {
     val coroutineScope = rememberCoroutineScope()
@@ -81,7 +83,6 @@ fun QueueView(context: ViewContext) {
     )
     var showSaveDialog by remember { mutableStateOf(false) }
 
-    // Overture: Robust Drag & Drop State
     var draggingIndex by remember { mutableStateOf<Int?>(null) }
     var targetIndex by remember { mutableStateOf<Int?>(null) }
     var dragOffset by remember { mutableFloatStateOf(0f) }
@@ -114,8 +115,21 @@ fun QueueView(context: ViewContext) {
                     }
                 },
                 actions = {
-                    when {
-                        selectedSongIndices.isNotEmpty() -> IconButton(
+                    if (selectedSongIndices.isNotEmpty()) {
+                        val allSelected = selectedSongIndices.size == queue.size
+                        IconButton(
+                            onClick = {
+                                if (allSelected) {
+                                    selectedSongIndices.clear()
+                                } else {
+                                    selectedSongIndices.clear()
+                                    selectedSongIndices.addAll(queue.indices)
+                                }
+                            }
+                        ) {
+                            Icon(Icons.Filled.SelectAll, null)
+                        }
+                        IconButton(
                             onClick = {
                                 context.symphony.radio.queue.remove(selectedSongIndices.toList())
                                 selectedSongIndices.clear()
@@ -123,23 +137,25 @@ fun QueueView(context: ViewContext) {
                         ) {
                             Icon(Icons.Filled.Delete, null)
                         }
-
-                        else -> IconButton(
+                    } else {
+                        IconButton(
                             onClick = {
                                 showSaveDialog = !showSaveDialog
                             }
                         ) {
                             Icon(Icons.Default.Save, null)
                         }
-                    }
-
-                    IconButton(
-                        onClick = {
-                            context.symphony.radio.stop()
-                            selectedSongIndices.clear()
+                        IconButton(
+                            onClick = {
+                                // Overture: Clear all EXCEPT the currently playing song
+                                val indicesToRemove = queue.indices.filter { it != queueIndex }
+                                if (indicesToRemove.isNotEmpty()) {
+                                    context.symphony.radio.queue.remove(indicesToRemove)
+                                }
+                            }
+                        ) {
+                            Icon(Icons.Filled.ClearAll, null)
                         }
-                    ) {
-                        Icon(Icons.Filled.ClearAll, null)
                     }
                 }
             )
@@ -210,7 +226,6 @@ fun QueueView(context: ViewContext) {
                                 val zIndex = if (isDragging) 1f else 0f
                                 val translationY = if (isDragging) dragOffset else 0f
 
-                                // Overture: M3E Floating Card Visuals for Drag & Drop
                                 val elevation by animateDpAsState(
                                     targetValue = if (isDragging) 16.dp else 0.dp,
                                     label = "dragElevation"
@@ -233,11 +248,12 @@ fun QueueView(context: ViewContext) {
 
                                 Box(
                                     modifier = Modifier
+                                        .animateItem() // Overture: Fluid deletion animation
                                         .zIndex(zIndex)
                                         .graphicsLayer {
                                             this.translationY = translationY
                                             this.shadowElevation = elevation.toPx()
-                                            this.alpha = if (isTarget) 0.3f else 1f // Dim the target slot
+                                            this.alpha = if (isTarget) 0.3f else 1f
                                         }
                                         .background(cardBgColor, RoundedCornerShape(if (isDragging) 16.dp else 0.dp))
                                         .clip(RoundedCornerShape(if (isDragging) 16.dp else 0.dp))

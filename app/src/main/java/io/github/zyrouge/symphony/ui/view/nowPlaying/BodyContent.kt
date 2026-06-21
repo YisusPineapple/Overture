@@ -11,6 +11,7 @@ import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -56,6 +57,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
@@ -80,6 +82,13 @@ fun NowPlayingBodyContent(context: ViewContext, data: NowPlayingData) {
     
     val textColor = data.contentColor ?: MaterialTheme.colorScheme.onSurface
     val activeColor = data.contentColor ?: MaterialTheme.colorScheme.primary
+    
+    // Overture: Subtle shadow to ensure text legibility on complex backgrounds
+    val textShadow = Shadow(
+        color = Color.Black.copy(alpha = 0.3f),
+        offset = Offset(0f, 2f),
+        blurRadius = 4f
+    )
 
     data.run {
         Column {
@@ -97,7 +106,7 @@ fun NowPlayingBodyContent(context: ViewContext, data: NowPlayingData) {
                         Text(
                             targetStateSong.title,
                             style = MaterialTheme.typography.headlineSmall
-                                .copy(fontWeight = FontWeight.Bold, color = textColor),
+                                .copy(fontWeight = FontWeight.Bold, color = textColor, shadow = textShadow),
                             maxLines = 3,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -106,7 +115,7 @@ fun NowPlayingBodyContent(context: ViewContext, data: NowPlayingData) {
                                 targetStateSong.artists.forEachIndexed { i, it ->
                                     Text(
                                         it,
-                                        style = MaterialTheme.typography.bodyLarge.copy(color = textColor.copy(alpha = 0.7f)),
+                                        style = MaterialTheme.typography.bodyLarge.copy(color = textColor.copy(alpha = 0.8f), shadow = textShadow),
                                         maxLines = 2,
                                         overflow = TextOverflow.Ellipsis,
                                         modifier = Modifier.pointerInput(Unit) {
@@ -116,7 +125,7 @@ fun NowPlayingBodyContent(context: ViewContext, data: NowPlayingData) {
                                         },
                                     )
                                     if (i != targetStateSong.artists.size - 1) {
-                                        Text(", ", color = textColor.copy(alpha = 0.7f))
+                                        Text(", ", color = textColor.copy(alpha = 0.8f), style = MaterialTheme.typography.bodyLarge.copy(shadow = textShadow))
                                     }
                                 }
                             }
@@ -126,7 +135,7 @@ fun NowPlayingBodyContent(context: ViewContext, data: NowPlayingData) {
                                 Text(
                                     it,
                                     style = MaterialTheme.typography.labelSmall
-                                        .copy(color = textColor.copy(alpha = 0.5f)),
+                                        .copy(color = textColor.copy(alpha = 0.6f), shadow = textShadow),
                                     modifier = Modifier.padding(top = 4.dp),
                                 )
                             }
@@ -425,28 +434,28 @@ private fun NowPlayingSeekBar(
     
     val currentRatio = if (dragging) dragRatio else ratio
     
-    // Overture: M3E Morphing Thumb & Track
+    // Overture: Faster M3E Morphing Thumb & Track
     val trackHeight by animateDpAsState(
         targetValue = if (dragging) 16.dp else 4.dp,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
         label = "TrackHeightAnimation"
     )
     
     val thumbWidth by animateDpAsState(
         targetValue = if (dragging) 8.dp else 12.dp,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
         label = "ThumbWidthAnimation"
     )
     
     val thumbHeight by animateDpAsState(
         targetValue = if (dragging) 24.dp else 12.dp,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
         label = "ThumbHeightAnimation"
     )
     
     val thumbRadius by animateDpAsState(
         targetValue = if (dragging) 4.dp else 6.dp,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
         label = "ThumbRadiusAnimation"
     )
 

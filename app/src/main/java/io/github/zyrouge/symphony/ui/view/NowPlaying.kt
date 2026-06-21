@@ -106,10 +106,10 @@ fun NowPlayingObserver(
     val dominantColorInt by context.symphony.radio.observatory.dominantColor.collectAsState()
     val dominantColor = remember(dominantColorInt) { dominantColorInt?.let { Color(it) } }
     
-    // Overture: Calculate high-contrast content color based on luminance
+    // Overture: Improved luminance threshold for better contrast on red/dark covers
     val contentColor = remember(dominantColorInt) {
         dominantColorInt?.let {
-            if (androidx.core.graphics.ColorUtils.calculateLuminance(it) > 0.5) Color.Black else Color.White
+            if (androidx.core.graphics.ColorUtils.calculateLuminance(it) > 0.35) Color.Black else Color.White
         }
     }
 

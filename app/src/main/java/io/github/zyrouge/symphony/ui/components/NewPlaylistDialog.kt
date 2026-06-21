@@ -20,10 +20,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import io.github.zyrouge.symphony.services.groove.Playlist
 import io.github.zyrouge.symphony.ui.helpers.ViewContext
+import kotlinx.coroutines.delay
 
 @Composable
 fun NewPlaylistDialog(
@@ -38,8 +38,14 @@ fun NewPlaylistDialog(
     val songIdsImmutable = songIds.toList()
     val focusRequester = remember { FocusRequester() }
 
-    LaunchedEffect(LocalContext.current) {
-        focusRequester.requestFocus()
+    // Overture: Fixed IllegalStateException by waiting for composition
+    LaunchedEffect(Unit) {
+        delay(200)
+        try {
+            focusRequester.requestFocus()
+        } catch (e: Exception) {
+            // Ignore if it fails to request focus
+        }
     }
 
     ScaffoldDialog(
