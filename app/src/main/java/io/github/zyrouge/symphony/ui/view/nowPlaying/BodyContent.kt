@@ -1,6 +1,9 @@
 package io.github.zyrouge.symphony.ui.view.nowPlaying
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -399,15 +402,22 @@ private fun NowPlayingSeekBar(
     onSeekEnd: (Float) -> Unit,
     onSeekCancel: () -> Unit,
 ) {
-    val sliderHeight = 12.dp
-    val thumbSize = 12.dp
-    val thumbSizeHalf = thumbSize.div(2)
-    val trackHeight = 4.dp
-
+    val sliderHeight = 48.dp // Overture: Increased for better touch target
+    
     var dragging by remember { mutableStateOf(false) }
     var dragRatio by remember { mutableFloatStateOf(0f) }
     
     val currentRatio = if (dragging) dragRatio else ratio
+    
+    // Overture: M3E Expressive Slider logic
+    val trackHeight by animateDpAsState(
+        targetValue = if (dragging) 24.dp else 8.dp,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "TrackHeightAnimation"
+    )
     
     val activeColor = dynamicColor
     val inactiveColor = MaterialTheme.colorScheme.surfaceVariant
@@ -418,8 +428,6 @@ private fun NowPlayingSeekBar(
             .height(sliderHeight),
         contentAlignment = Alignment.Center,
     ) {
-        val sliderWidth = this@BoxWithConstraints.maxWidth
-
         Canvas(
             modifier = Modifier
                 .fillMaxSize()
@@ -461,25 +469,18 @@ private fun NowPlayingSeekBar(
             // 1. Draw Inactive Track
             drawRoundRect(
                 color = inactiveColor,
-                topLeft = Offset(thumbSizeHalf.toPx(), trackY - trackH / 2f),
-                size = Size(size.width - thumbSize.toPx(), trackH),
+                topLeft = Offset(0f, trackY - trackH / 2f),
+                size = Size(size.width, trackH),
                 cornerRadius = cornerRadius
             )
 
             // 2. Draw Active Track
-            val activeWidth = (size.width - thumbSize.toPx()) * currentRatio
+            val activeWidth = size.width * currentRatio
             drawRoundRect(
                 color = activeColor,
-                topLeft = Offset(thumbSizeHalf.toPx(), trackY - trackH / 2f),
+                topLeft = Offset(0f, trackY - trackH / 2f),
                 size = Size(activeWidth, trackH),
                 cornerRadius = cornerRadius
-            )
-
-            // 3. Draw Thumb
-            drawCircle(
-                color = activeColor,
-                radius = thumbSizeHalf.toPx(),
-                center = Offset(activeWidth + thumbSizeHalf.toPx(), trackY)
             )
         }
     }

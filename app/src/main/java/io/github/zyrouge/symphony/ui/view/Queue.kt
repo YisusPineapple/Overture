@@ -35,6 +35,7 @@ import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberSwipeToDismissBoxState
+import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -208,6 +209,16 @@ fun QueueView(context: ViewContext) {
                                 val zIndex = if (isDragging) 1f else 0f
                                 val translationY = if (isDragging) dragOffset else 0f
 
+                                // Overture: M3E Floating Card Visuals for Drag & Drop
+                                val elevation by animateFloatAsState(
+                                    targetValue = if (isDragging) 16.dp.toPx() else 0f,
+                                    label = "dragElevation"
+                                )
+                                val cardBgColor by animateColorAsState(
+                                    targetValue = if (isDragging) MaterialTheme.colorScheme.surfaceColorAtElevation(8.dp) else Color.Transparent,
+                                    label = "dragBgColor"
+                                )
+
                                 val dismissState = rememberSwipeToDismissBoxState(
                                     confirmValueChange = { dismissValue ->
                                         if (dismissValue != SwipeToDismissBoxValue.Settled) {
@@ -224,9 +235,11 @@ fun QueueView(context: ViewContext) {
                                         .zIndex(zIndex)
                                         .graphicsLayer {
                                             this.translationY = translationY
-                                            this.shadowElevation = if (isDragging) 16.dp.toPx() else 0f
-                                            this.alpha = if (isTarget) 0.5f else 1f // Dim the target slot
+                                            this.shadowElevation = elevation
+                                            this.alpha = if (isTarget) 0.3f else 1f // Dim the target slot
                                         }
+                                        .background(cardBgColor, RoundedCornerShape(if (isDragging) 16.dp else 0.dp))
+                                        .clip(RoundedCornerShape(if (isDragging) 16.dp else 0.dp))
                                 ) {
                                     SwipeToDismissBox(
                                         state = dismissState,

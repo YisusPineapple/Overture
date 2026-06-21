@@ -144,6 +144,7 @@ fun SongList(
                             context.symphony.groove.song.get(songId)?.let { song ->
                                 
                                 val dismissState = rememberSwipeToDismissBoxState(
+                                    positionalThreshold = { it * 0.4f }, // Overture: Require 40% swipe to prevent accidental triggers
                                     confirmValueChange = { dismissValue ->
                                         when (dismissValue) {
                                             SwipeToDismissBoxValue.StartToEnd -> {
@@ -212,7 +213,6 @@ fun SongList(
                                                 .padding(horizontal = 24.dp),
                                             contentAlignment = alignment
                                         ) {
-                                            // Overture: Only draw the icon if we are actually swiping to prevent ghost icons
                                             if (isDismissing) {
                                                 Icon(
                                                     icon,

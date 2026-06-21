@@ -43,6 +43,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import kotlin.math.round
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SongInformationDialog(context: ViewContext, song: Song, onDismissRequest: () -> Unit) {
     val fileExtension = SimplePath(song.path).extension.uppercase()
@@ -54,47 +55,30 @@ fun SongInformationDialog(context: ViewContext, song: Song, onDismissRequest: ()
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(16.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                     .padding(16.dp)
             ) {
-                Column {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Filled.AudioFile, null, tint = MaterialTheme.colorScheme.primary)
-                        Spacer(modifier = Modifier.size(8.dp))
-                        Text(
-                            text = fileExtension,
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                        )
-                        Spacer(modifier = Modifier.weight(1f))
-                        song.bitrateK?.let {
-                            Text(
-                                text = context.symphony.t.XKbps(it.toString()),
-                                style = MaterialTheme.typography.labelLarge.copy(color = MaterialTheme.colorScheme.primary)
-                            )
-                        }
-                    }
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Filled.AudioFile, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(36.dp))
                     Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                    Text(
+                        text = fileExtension,
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    FlowRow(
+                        horizontalArrangement = Arrangement.Center,
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        song.samplingRateK?.let {
-                            Text(
-                                text = context.symphony.t.XKHz(it.toString()),
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
-                        song.channels?.let {
-                            Text(
-                                text = context.symphony.t.AudioChannels + ": $it",
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
-                        Text(
-                            text = "${round((song.size / 1024 / 1024).toDouble())} MB",
-                            style = MaterialTheme.typography.bodySmall
-                        )
+                        song.bitrateK?.let { AudioBadge(context.symphony.t.XKbps(it.toString())) }
+                        song.samplingRateK?.let { AudioBadge(context.symphony.t.XKHz(it.toString())) }
+                        song.channels?.let { AudioBadge(context.symphony.t.AudioChannels + ": $it") }
+                        AudioBadge("${round((song.size / 1024 / 1024).toDouble())} MB")
                     }
                 }
             }
@@ -171,6 +155,22 @@ fun SongInformationDialog(context: ViewContext, song: Song, onDismissRequest: ()
         },
         onDismissRequest = onDismissRequest,
     )
+}
+
+@Composable
+private fun AudioBadge(text: String) {
+    Box(
+        modifier = Modifier
+            .padding(horizontal = 4.dp)
+            .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(8.dp))
+            .padding(horizontal = 10.dp, vertical = 6.dp)
+    ) {
+        Text(
+            text = text, 
+            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold), 
+            color = MaterialTheme.colorScheme.onPrimaryContainer
+        )
+    }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
