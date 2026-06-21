@@ -23,6 +23,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -35,9 +36,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.lerp
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.zyrouge.symphony.ui.helpers.TransitionDurations
@@ -89,14 +93,15 @@ fun TimedContentText(
         }
     }
     var activeIndex by remember { mutableIntStateOf(-1) }
+    
+    val playbackPosition by context.symphony.radio.observatory.playbackPosition.collectAsState()
+    val currentPosition = playbackPosition.played
 
-    // Overture: Decoupled lyrics sync from UI recomposition
-    // This loop runs in the background and only triggers a recomposition when the active line changes.
     LaunchedEffect(content) {
         while (isActive) {
-            val currentPosition = context.symphony.radio.currentPlaybackPosition?.played ?: 0L
+            val pos = context.symphony.radio.currentPlaybackPosition?.played ?: 0L
             if (content.isSynced) {
-                val nActiveIndex = content.pairs.indexOfLast { it.first <= currentPosition }
+                val nActiveIndex = content.lines.indexOfLast { it.time <= pos }
                 if (nActiveIndex != -1 && activeIndex != nActiveIndex) {
                     activeIndex = nActiveIndex
                     val isLineVisible = activeIndex in visibleRange.first..visibleRange.second
@@ -123,7 +128,7 @@ fun TimedContentText(
         item {
             Spacer(modifier = Modifier.height(padding.calculateTopPadding() + 64.dp))
         }
-        itemsIndexed(content.pairs) { i, x ->
+        itemsIndexed(content.lines) { i, line ->
             val highlight = !content.isSynced || i < activeIndex
             val active = i == activeIndex
 
@@ -150,32 +155,51 @@ fun TimedContentText(
                 },
             )
 
-            Text(
-                text = x.second,
-                modifier = Modifier
-                    .animateItem()
-                    .fillMaxWidth()
-                    .graphicsLayer {
-                        scaleX = scale
-                        scaleY = scale
-                        this.alpha = alpha
-                        transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0f, 0.5f)
-                    }
-                    .pointerInput(Unit) {
-                        detectTapGestures { _ ->
-                            if (!content.isSynced) {
-                                return@detectTapGestures
-                            }
-                            onSeek(i)
-                            activeIndex = i
-                            coroutineScope.launch {
-                                val scrollIndex = calculateRelaxedScrollIndex(i, visibleRange)
-                                scrollState.animateScrollToItem(scrollIndex)
-                            }
+            val modifier = Modifier
+                .animateItem()
+                .fillMaxWidth()
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                    this.alpha = alpha
+                    transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0f, 0.5f)
+                }
+                .pointerInput(Unit) {
+                    detectTapGestures { _ ->
+                        if (!content.isSynced) {
+                            return@detectTapGestures
                         }
-                    },
-                style = textStyle,
-            )
+                        onSeek(i)
+                        activeIndex = i
+                        coroutineScope.launch {
+                            val scrollIndex = calculateRelaxedScrollIndex(i, visibleRange)
+                            scrollState.animateScrollToItem(scrollIndex)
+                        }
+                    }
+                }
+
+            // Overture: Word-by-word Karaoke rendering
+            if (active && line.words.isNotEmpty()) {
+                val annotatedString = buildAnnotatedString {
+                    line.words.forEach { word ->
+                        val color = if (currentPosition >= word.time) style.active.color else style.inactive.color
+                        withStyle(SpanStyle(color = color)) {
+                            append(word.text)
+                        }
+                    }
+                }
+                Text(
+                    text = annotatedString,
+                    modifier = modifier,
+                    style = textStyle,
+                )
+            } else {
+                Text(
+                    text = line.text,
+                    modifier = modifier,
+                    style = textStyle,
+                )
+            }
         }
         item {
             Spacer(modifier = Modifier.height(padding.calculateBottomPadding() + 64.dp))

@@ -78,7 +78,7 @@ fun LyricsText(
                 padding = padding,
                 style = style,
                 onSeek = {
-                    targetLyrics.pairs.getOrNull(it)?.first?.let { to ->
+                    targetLyrics.lines.getOrNull(it)?.time?.let { to ->
                         context.symphony.radio.seek(to)
                     }
                 }
