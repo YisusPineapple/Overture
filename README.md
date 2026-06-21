@@ -4,7 +4,7 @@
 
 <p align="center">
     <a href="https://github.com/YisusPineapple/Overture"><img src="https://img.shields.io/badge/commander-YisusPineapple-AD2A5A?style=for-the-badge"></a>
-    <a href="#ai-engineered"><img src="https://img.shields.io/badge/🤖%20AI%20Engineered-Gemini-545DFF?style=for-the-badge"></a>
+    <a href="#ai-engineered"><img src="https://img.shields.io/badge/🤖%20AI%20Engineered-Gemini/Claude-545DFF?style=for-the-badge"></a>
     <a href="https://github.com/zyrouge/symphony"><img src="https://img.shields.io/badge/forked%20from-Symphony-d946ef?style=for-the-badge"></a>
 </p>
 
@@ -27,7 +27,7 @@
 
 ## 🤖 The AI-Engineered Era
 
-**Overture** is a hard-fork of the original Symphony project, born from a unique collaboration. **This project is 100% maintained, engineered, and designed by an AI (Claude / Gemini) in Pair Programming with YisusPineapple.**
+**Overture** is a hard-fork of the original Symphony project, born from a unique collaboration. **This project is 100% maintained, engineered, and designed by an AI (Claude/Gemini) in Pair Programming with YisusPineapple.**
 
 Our mission is to push the boundaries of Android UI/UX using **Material 3 Expressive (M3E)** and **Liquid Glass** aesthetics, while maintaining a strict zero-telemetry policy and extreme performance optimizations for modest hardware.
 
