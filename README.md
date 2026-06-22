@@ -35,6 +35,10 @@ Our mission is to push the boundaries of Android UI/UX using **Material 3 Expres
 
 - **Liquid Glass UI:** Hardware-accelerated ambient backgrounds that react to your music, with zero-cost fallbacks for older devices.
 - **M3E Physics:** Organic, spring-based animations (60/120fps) that make the interface feel alive and tangible.
+- **Dynamic Global Theming:** The app extracts the dominant palette from the current track's artwork and propagates it across every surface in real time — no hardcoded colors, no restart required.
+- **Karaoke Lyrics Engine:** Native support for Enhanced LRC word-level `<time>` tags, highlighting each word as it is sung with M3E spring transitions. Falls back gracefully to line-synced and static lyrics.
+- **Organic M3E Sliders:** Custom seek and volume controls built with spring physics — overshoot on press, settle on release — consistent with the tactile language of the rest of the UI.
+- **Advanced Queue Management:** Drag-to-reorder, persistent queue state across sessions, and shuffle/repeat modes that operate on the queue without mutating the source library.
 - **Absolute Privacy:** No internet permissions required for playback. No tracking. No telemetry.
 - **Extreme Optimization:** UI rendering isolated to the `Draw` phase to prevent battery drain and device heating.
 - **Gapless Playback & Advanced Audio:** Powered by Media3 and a custom C++ metadata decoder (Metaphony).
