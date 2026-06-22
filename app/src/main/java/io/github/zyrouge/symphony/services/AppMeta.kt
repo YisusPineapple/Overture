@@ -31,7 +31,7 @@ object AppMeta {
     const val fdroidUrl = "https://f-droid.org/en/packages/$packageName"
     const val playStoreUrl = "https://play.google.com/store/apps/details?id=$packageName"
 
-    fun isNightlyBuild() = version.contains("-nightly")
+    fun isNightlyBuild() = version.contains("-nightly") || version.contains("-canary")
 
     fun fetchLatestVersion() = when {
         isNightlyBuild() -> fetchLatestNightlyVersion()
@@ -47,11 +47,15 @@ object AppMeta {
                 .cacheControl(CacheControl.FORCE_NETWORK)
                 .build()
             val res = HttpClient.newCall(req).execute()
-            val content = res.body?.string() ?: ""
+            
+            if (!res.isSuccessful) return null
+            
+            val content = res.body?.string() ?: return null
             val json = JSONObject(content)
-            val tagName = json.getString("tag_name")
-            val draft = json.getBoolean("draft")
-            if (!draft) {
+            val tagName = json.optString("tag_name", "")
+            val draft = json.optBoolean("draft", true)
+            
+            if (!draft && tagName.isNotEmpty()) {
                 latestVersion = tagName
             }
         } catch (err: Exception) {
@@ -69,13 +73,18 @@ object AppMeta {
                 .cacheControl(CacheControl.FORCE_NETWORK)
                 .build()
             val res = HttpClient.newCall(req).execute()
-            val content = res.body?.string() ?: ""
+            
+            if (!res.isSuccessful) return null
+            
+            val content = res.body?.string() ?: return null
             val json = JSONArray(content)
+            
             for (i in 0 until json.length()) {
                 val x = json.getJSONObject(i)
-                val tagName = x.getString("tag_name")
-                val prerelease = x.getBoolean("prerelease")
-                if (prerelease) {
+                val tagName = x.optString("tag_name", "")
+                val prerelease = x.optBoolean("prerelease", false)
+                
+                if (prerelease && tagName.isNotEmpty()) {
                     latestVersion = tagName
                     break
                 }

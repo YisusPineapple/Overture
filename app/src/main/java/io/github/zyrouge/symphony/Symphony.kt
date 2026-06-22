@@ -96,11 +96,15 @@ class Symphony(application: Application) : AndroidViewModel(application), Sympho
                 return@launch
             }
             withContext(Dispatchers.Main) {
-                if (settings.showUpdateToast.value && AppMeta.version != latestVersion) {
+                // Overture: Strip build metadata (e.g., +1cc9bb8) before comparing
+                val currentBase = AppMeta.version.substringBefore("+")
+                val latestBase = latestVersion.substringBefore("+")
+                
+                if (settings.showUpdateToast.value && currentBase != latestBase) {
                     Toast.makeText(
                         applicationContext,
-                        t.NewVersionAvailableX(latestVersion),
-                        Toast.LENGTH_SHORT,
+                        t.NewVersionAvailableX(latestBase),
+                        Toast.LENGTH_LONG,
                     ).show()
                 }
             }
