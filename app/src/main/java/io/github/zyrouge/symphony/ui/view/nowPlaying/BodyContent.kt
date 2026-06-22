@@ -80,12 +80,12 @@ fun NowPlayingBodyContent(context: ViewContext, data: NowPlayingData) {
         derivedStateOf { favoriteSongIds.contains(data.song.id) }
     }
     
-    val textColor = data.contentColor ?: MaterialTheme.colorScheme.onSurface
-    val activeColor = data.contentColor ?: MaterialTheme.colorScheme.primary
+    // Overture: Now that the whole app theme adapts to the song, we can safely use onSurface/primary
+    val textColor = MaterialTheme.colorScheme.onSurface
+    val activeColor = MaterialTheme.colorScheme.primary
     
-    // Overture: Subtle shadow to ensure text legibility on complex backgrounds
     val textShadow = Shadow(
-        color = Color.Black.copy(alpha = 0.3f),
+        color = Color.Black.copy(alpha = 0.2f),
         offset = Offset(0f, 2f),
         blurRadius = 4f
     )
@@ -243,7 +243,7 @@ fun NowPlayingCompactControls(
             style = NowPlayingControlButtonStyle(
                 color = NowPlayingControlButtonColor.Primary,
                 customBgColor = activeColor,
-                customIconColor = data.dominantColor ?: MaterialTheme.colorScheme.onPrimary
+                customIconColor = MaterialTheme.colorScheme.onPrimary
             ),
         )
         NowPlayingSkipPreviousButton(
@@ -336,7 +336,7 @@ fun NowPlayingTraditionalControls(context: ViewContext, data: NowPlayingData, ac
             style = NowPlayingControlButtonStyle(
                 color = NowPlayingControlButtonColor.Primary,
                 customBgColor = activeColor,
-                customIconColor = data.dominantColor ?: MaterialTheme.colorScheme.onPrimary,
+                customIconColor = MaterialTheme.colorScheme.onPrimary,
                 size = NowPlayingControlButtonSize.Giant,
             ),
         )
@@ -434,28 +434,28 @@ private fun NowPlayingSeekBar(
     
     val currentRatio = if (dragging) dragRatio else ratio
     
-    // Overture: Faster M3E Morphing Thumb & Track
+    // Overture: M3E Morphing Thumb & Track (More organic and less rigid)
     val trackHeight by animateDpAsState(
         targetValue = if (dragging) 16.dp else 4.dp,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessVeryLow),
         label = "TrackHeightAnimation"
     )
     
     val thumbWidth by animateDpAsState(
         targetValue = if (dragging) 8.dp else 12.dp,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessVeryLow),
         label = "ThumbWidthAnimation"
     )
     
     val thumbHeight by animateDpAsState(
         targetValue = if (dragging) 24.dp else 12.dp,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessVeryLow),
         label = "ThumbHeightAnimation"
     )
     
     val thumbRadius by animateDpAsState(
         targetValue = if (dragging) 4.dp else 6.dp,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessVeryLow),
         label = "ThumbRadiusAnimation"
     )
 
@@ -503,7 +503,6 @@ private fun NowPlayingSeekBar(
             val trackH = trackHeight.toPx()
             val cornerRadius = CornerRadius(trackH / 2f, trackH / 2f)
             
-            // Padding to ensure thumb doesn't clip outside bounds
             val maxThumbWidthPx = 12.dp.toPx()
             val padding = maxThumbWidthPx / 2f
             val usableWidth = size.width - maxThumbWidthPx

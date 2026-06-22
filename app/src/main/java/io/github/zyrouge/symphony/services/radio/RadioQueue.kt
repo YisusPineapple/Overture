@@ -38,8 +38,10 @@ class RadioQueue(private val symphony: Symphony) {
     val currentSongId: String?
         get() = getSongIdAt(currentSongIndex)
 
-    fun hasSongAt(index: Int) = index > -1 && index < currentQueue.size
-    fun getSongIdAt(index: Int) = if (hasSongAt(index)) currentQueue[index] else null
+    fun hasSongAt(index: Int) = index >= 0 && index < currentQueue.size
+    
+    // Overture: Safe access to prevent ArrayIndexOutOfBoundsException during rapid skips
+    fun getSongIdAt(index: Int) = currentQueue.getOrNull(index)
 
     fun reset() {
         originalQueue.clear()

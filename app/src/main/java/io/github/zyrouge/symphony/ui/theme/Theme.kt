@@ -12,6 +12,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
@@ -46,9 +47,22 @@ fun SymphonyTheme(
     val fontName by context.symphony.settings.fontFamily.flow.collectAsState()
     val fontScale by context.symphony.settings.fontScale.flow.collectAsState()
     val contentScale by context.symphony.settings.contentScale.flow.collectAsState()
+    
+    // Overture: Global Dynamic Theming based on currently playing song
+    val dominantColorInt by context.symphony.radio.observatory.dominantColor.collectAsState()
 
     val colorSchemeMode = themeMode.toColorSchemeMode(isSystemInDarkTheme())
-    val colorScheme = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && useMaterialYou) {
+    
+    val colorScheme = if (dominantColorInt != null) {
+        // If a song is playing, the entire app absorbs its tonality
+        val songColor = Color(dominantColorInt!!)
+        when (colorSchemeMode) {
+            ColorSchemeMode.LIGHT -> ThemeColorSchemes.createLightColorScheme(songColor)
+            ColorSchemeMode.DARK -> ThemeColorSchemes.createDarkColorScheme(songColor)
+            ColorSchemeMode.BLACK -> ThemeColorSchemes.createBlackColorScheme(songColor)
+        }
+    } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && useMaterialYou) {
+        // Fallback to Material You (Wallpaper) if no song is playing
         val currentContext = LocalContext.current
         when (colorSchemeMode) {
             ColorSchemeMode.LIGHT -> dynamicLightColorScheme(currentContext)
@@ -58,6 +72,7 @@ fun SymphonyTheme(
             )
         }
     } else {
+        // Fallback to manual primary color
         val primaryColor = ThemeColors.resolvePrimaryColor(primaryColorName)
         when (colorSchemeMode) {
             ColorSchemeMode.LIGHT -> ThemeColorSchemes.createLightColorScheme(primaryColor)
