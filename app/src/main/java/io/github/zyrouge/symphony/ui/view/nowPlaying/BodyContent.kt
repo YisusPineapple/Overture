@@ -9,6 +9,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -67,6 +68,7 @@ import io.github.zyrouge.symphony.services.radio.RadioQueue
 import io.github.zyrouge.symphony.ui.components.SongDropdownMenu
 import io.github.zyrouge.symphony.ui.helpers.FadeTransition
 import io.github.zyrouge.symphony.ui.helpers.ViewContext
+import io.github.zyrouge.symphony.ui.helpers.bounceScale
 import io.github.zyrouge.symphony.ui.view.ArtistViewRoute
 import io.github.zyrouge.symphony.ui.view.NowPlayingControlsLayout
 import io.github.zyrouge.symphony.ui.view.NowPlayingData
@@ -80,12 +82,11 @@ fun NowPlayingBodyContent(context: ViewContext, data: NowPlayingData) {
         derivedStateOf { favoriteSongIds.contains(data.song.id) }
     }
     
-    // Overture: Now that the whole app theme adapts to the song, we can safely use onSurface/primary
-    val textColor = MaterialTheme.colorScheme.onSurface
-    val activeColor = MaterialTheme.colorScheme.primary
+    val textColor = data.contentColor ?: MaterialTheme.colorScheme.onSurface
+    val activeColor = data.contentColor ?: MaterialTheme.colorScheme.primary
     
     val textShadow = Shadow(
-        color = Color.Black.copy(alpha = 0.2f),
+        color = Color.Black.copy(alpha = 0.3f),
         offset = Offset(0f, 2f),
         blurRadius = 4f
     )
@@ -243,7 +244,7 @@ fun NowPlayingCompactControls(
             style = NowPlayingControlButtonStyle(
                 color = NowPlayingControlButtonColor.Primary,
                 customBgColor = activeColor,
-                customIconColor = MaterialTheme.colorScheme.onPrimary
+                customIconColor = data.dominantColor ?: MaterialTheme.colorScheme.onPrimary
             ),
         )
         NowPlayingSkipPreviousButton(
@@ -336,7 +337,7 @@ fun NowPlayingTraditionalControls(context: ViewContext, data: NowPlayingData, ac
             style = NowPlayingControlButtonStyle(
                 color = NowPlayingControlButtonColor.Primary,
                 customBgColor = activeColor,
-                customIconColor = MaterialTheme.colorScheme.onPrimary,
+                customIconColor = data.dominantColor ?: MaterialTheme.colorScheme.onPrimary,
                 size = NowPlayingControlButtonSize.Giant,
             ),
         )
@@ -434,32 +435,31 @@ private fun NowPlayingSeekBar(
     
     val currentRatio = if (dragging) dragRatio else ratio
     
-    // Overture: M3E Morphing Thumb & Track (More organic and less rigid)
     val trackHeight by animateDpAsState(
         targetValue = if (dragging) 16.dp else 4.dp,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessVeryLow),
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
         label = "TrackHeightAnimation"
     )
     
     val thumbWidth by animateDpAsState(
         targetValue = if (dragging) 8.dp else 12.dp,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessVeryLow),
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
         label = "ThumbWidthAnimation"
     )
     
     val thumbHeight by animateDpAsState(
         targetValue = if (dragging) 24.dp else 12.dp,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessVeryLow),
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
         label = "ThumbHeightAnimation"
     )
     
     val thumbRadius by animateDpAsState(
         targetValue = if (dragging) 4.dp else 6.dp,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessVeryLow),
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
         label = "ThumbRadiusAnimation"
     )
 
-    Box(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxWidth()
             .height(sliderHeight),
@@ -507,7 +507,6 @@ private fun NowPlayingSeekBar(
             val padding = maxThumbWidthPx / 2f
             val usableWidth = size.width - maxThumbWidthPx
 
-            // 1. Draw Inactive Track
             drawRoundRect(
                 color = inactiveColor,
                 topLeft = Offset(padding, trackY - trackH / 2f),
@@ -515,7 +514,6 @@ private fun NowPlayingSeekBar(
                 cornerRadius = cornerRadius
             )
 
-            // 2. Draw Active Track
             val activeWidth = usableWidth * currentRatio
             drawRoundRect(
                 color = activeColor,
@@ -524,7 +522,6 @@ private fun NowPlayingSeekBar(
                 cornerRadius = cornerRadius
             )
 
-            // 3. Draw Morphing Thumb
             drawRoundRect(
                 color = activeColor,
                 topLeft = Offset(
@@ -690,11 +687,15 @@ private fun NowPlayingControlButton(
         NowPlayingControlButtonSize.Giant -> 80.dp to 48.dp
     }
 
+    val interactionSource = remember { MutableInteractionSource() }
+
     IconButton(
         modifier = Modifier
             .size(buttonSize)
+            .bounceScale(interactionSource) // Overture: M3E Bounce
             .background(backgroundColor, CircleShape),
         onClick = onClick,
+        interactionSource = interactionSource
     ) {
         Icon(
             icon,

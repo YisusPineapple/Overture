@@ -26,10 +26,9 @@ import kotlinx.coroutines.flow.update
 import kotlin.enums.EnumEntries
 import kotlin.enums.enumEntries
 
-enum class BottomBarAppearance {
-    LiquidGlass,
-    Solid
-}
+enum class BottomBarAppearance { LiquidGlass, Solid }
+enum class LyricsAlignment { Left, Center, Right }
+enum class LyricsAnimationEngine { Normal, Expressive }
 
 class Settings(private val symphony: Symphony) {
     abstract class Entry<T>(val key: String) {
@@ -129,133 +128,45 @@ class Settings(private val symphony: Symphony) {
     val language = NullableStringEntry("language")
     val useMaterialYou = BooleanEntry("material_you", true)
     val bottomBarAppearance = EnumEntry("bottom_bar_appearance", enumEntries<BottomBarAppearance>(), BottomBarAppearance.LiquidGlass)
-    val lastUsedSongsSortBy = EnumEntry(
-        "last_used_song_sort_by",
-        enumEntries<SongRepository.SortBy>(),
-        SongRepository.SortBy.TITLE,
-    )
+    val lastUsedSongsSortBy = EnumEntry("last_used_song_sort_by", enumEntries<SongRepository.SortBy>(), SongRepository.SortBy.TITLE)
     val lastUsedSongsSortReverse = BooleanEntry("last_used_song_sort_reverse", false)
-    val lastUsedArtistsSortBy = EnumEntry(
-        "last_used_artists_sort_by",
-        enumEntries<ArtistRepository.SortBy>(),
-        ArtistRepository.SortBy.ARTIST_NAME,
-    )
+    val lastUsedArtistsSortBy = EnumEntry("last_used_artists_sort_by", enumEntries<ArtistRepository.SortBy>(), ArtistRepository.SortBy.ARTIST_NAME)
     val lastUsedArtistsSortReverse = BooleanEntry("last_used_artists_sort_reverse", false)
-    val lastUsedArtistsHorizontalGridColumns = IntEntry(
-        "last_used_artists_horizontal_grid_columns",
-        ResponsiveGridColumns.DEFAULT_HORIZONTAL_COLUMNS,
-    )
-    val lastUsedArtistsVerticalGridColumns = IntEntry(
-        "last_used_artists_vertical_grid_columns",
-        ResponsiveGridColumns.DEFAULT_VERTICAL_COLUMNS,
-    )
-    val lastUsedAlbumArtistsSortBy = EnumEntry(
-        "last_used_album_artists_sort_by",
-        enumEntries<AlbumArtistRepository.SortBy>(),
-        AlbumArtistRepository.SortBy.ARTIST_NAME,
-    )
-    val lastUsedAlbumArtistsSortReverse =
-        BooleanEntry("last_used_album_artists_sort_reverse", false)
-    val lastUsedAlbumArtistsHorizontalGridColumns = IntEntry(
-        "last_used_album_artists_horizontal_grid_columns",
-        ResponsiveGridColumns.DEFAULT_HORIZONTAL_COLUMNS,
-    )
-    val lastUsedAlbumArtistsVerticalGridColumns = IntEntry(
-        "last_used_album_artists_vertical_grid_columns",
-        ResponsiveGridColumns.DEFAULT_VERTICAL_COLUMNS,
-    )
-    val lastUsedAlbumsSortBy = EnumEntry(
-        "last_used_albums_sort_by",
-        enumEntries<AlbumRepository.SortBy>(),
-        AlbumRepository.SortBy.ALBUM_NAME,
-    )
+    val lastUsedArtistsHorizontalGridColumns = IntEntry("last_used_artists_horizontal_grid_columns", ResponsiveGridColumns.DEFAULT_HORIZONTAL_COLUMNS)
+    val lastUsedArtistsVerticalGridColumns = IntEntry("last_used_artists_vertical_grid_columns", ResponsiveGridColumns.DEFAULT_VERTICAL_COLUMNS)
+    val lastUsedAlbumArtistsSortBy = EnumEntry("last_used_album_artists_sort_by", enumEntries<AlbumArtistRepository.SortBy>(), AlbumArtistRepository.SortBy.ARTIST_NAME)
+    val lastUsedAlbumArtistsSortReverse = BooleanEntry("last_used_album_artists_sort_reverse", false)
+    val lastUsedAlbumArtistsHorizontalGridColumns = IntEntry("last_used_album_artists_horizontal_grid_columns", ResponsiveGridColumns.DEFAULT_HORIZONTAL_COLUMNS)
+    val lastUsedAlbumArtistsVerticalGridColumns = IntEntry("last_used_album_artists_vertical_grid_columns", ResponsiveGridColumns.DEFAULT_VERTICAL_COLUMNS)
+    val lastUsedAlbumsSortBy = EnumEntry("last_used_albums_sort_by", enumEntries<AlbumRepository.SortBy>(), AlbumRepository.SortBy.ALBUM_NAME)
     val lastUsedAlbumsSortReverse = BooleanEntry("last_used_albums_sort_reverse", false)
-    val lastUsedAlbumsHorizontalGridColumns = IntEntry(
-        "last_used_albums_horizontal_grid_columns",
-        ResponsiveGridColumns.DEFAULT_HORIZONTAL_COLUMNS,
-    )
-    val lastUsedAlbumsVerticalGridColumns = IntEntry(
-        "last_used_albums_vertical_grid_columns",
-        ResponsiveGridColumns.DEFAULT_VERTICAL_COLUMNS,
-    )
-    val lastUsedGenresSortBy = EnumEntry(
-        "last_used_genres_sort_by",
-        enumEntries<GenreRepository.SortBy>(),
-        GenreRepository.SortBy.GENRE,
-    )
+    val lastUsedAlbumsHorizontalGridColumns = IntEntry("last_used_albums_horizontal_grid_columns", ResponsiveGridColumns.DEFAULT_HORIZONTAL_COLUMNS)
+    val lastUsedAlbumsVerticalGridColumns = IntEntry("last_used_albums_vertical_grid_columns", ResponsiveGridColumns.DEFAULT_VERTICAL_COLUMNS)
+    val lastUsedGenresSortBy = EnumEntry("last_used_genres_sort_by", enumEntries<GenreRepository.SortBy>(), GenreRepository.SortBy.GENRE)
     val lastUsedGenresSortReverse = BooleanEntry("last_used_genres_sort_reverse", false)
-    val lastUsedGenresHorizontalGridColumns = IntEntry(
-        "last_used_genres_horizontal_grid_columns",
-        ResponsiveGridColumns.DEFAULT_HORIZONTAL_COLUMNS,
-    )
-    val lastUsedGenresVerticalGridColumns = IntEntry(
-        "last_used_genres_vertical_grid_columns",
-        ResponsiveGridColumns.DEFAULT_VERTICAL_COLUMNS,
-    )
-    val lastUsedBrowserSortBy = EnumEntry(
-        "last_used_folder_sort_by",
-        enumEntries<SongRepository.SortBy>(),
-        SongRepository.SortBy.FILENAME,
-    )
+    val lastUsedGenresHorizontalGridColumns = IntEntry("last_used_genres_horizontal_grid_columns", ResponsiveGridColumns.DEFAULT_HORIZONTAL_COLUMNS)
+    val lastUsedGenresVerticalGridColumns = IntEntry("last_used_genres_vertical_grid_columns", ResponsiveGridColumns.DEFAULT_VERTICAL_COLUMNS)
+    val lastUsedBrowserSortBy = EnumEntry("last_used_folder_sort_by", enumEntries<SongRepository.SortBy>(), SongRepository.SortBy.FILENAME)
     val lastUsedBrowserSortReverse = BooleanEntry("last_used_folder_sort_reverse", false)
     val lastUsedBrowserPath = NullableStringEntry("last_used_folder_path")
-    val lastUsedPlaylistsSortBy = EnumEntry(
-        "last_used_playlists_sort_by",
-        enumEntries<PlaylistRepository.SortBy>(),
-        PlaylistRepository.SortBy.CUSTOM,
-    )
+    val lastUsedPlaylistsSortBy = EnumEntry("last_used_playlists_sort_by", enumEntries<PlaylistRepository.SortBy>(), PlaylistRepository.SortBy.CUSTOM)
     val lastUsedPlaylistsSortReverse = BooleanEntry("last_used_playlists_sort_reverse", false)
-    val lastUsedPlaylistsHorizontalGridColumns = IntEntry(
-        "last_used_playlists_horizontal_grid_columns",
-        ResponsiveGridColumns.DEFAULT_HORIZONTAL_COLUMNS,
-    )
-    val lastUsedPlaylistsVerticalGridColumns = IntEntry(
-        "last_used_playlists_vertical_grid_columns",
-        ResponsiveGridColumns.DEFAULT_VERTICAL_COLUMNS,
-    )
-    val lastUsedPlaylistSongsSortBy = EnumEntry(
-        "last_used_playlist_songs_sort_by",
-        enumEntries<SongRepository.SortBy>(),
-        SongRepository.SortBy.CUSTOM,
-    )
-    val lastUsedPlaylistSongsSortReverse =
-        BooleanEntry("last_used_playlist_songs_sort_reverse", false)
-    val lastUsedAlbumSongsSortBy = EnumEntry(
-        "last_used_album_songs_sort_by",
-        enumEntries<SongRepository.SortBy>(),
-        SongRepository.SortBy.TRACK_NUMBER,
-    )
+    val lastUsedPlaylistsHorizontalGridColumns = IntEntry("last_used_playlists_horizontal_grid_columns", ResponsiveGridColumns.DEFAULT_HORIZONTAL_COLUMNS)
+    val lastUsedPlaylistsVerticalGridColumns = IntEntry("last_used_playlists_vertical_grid_columns", ResponsiveGridColumns.DEFAULT_VERTICAL_COLUMNS)
+    val lastUsedPlaylistSongsSortBy = EnumEntry("last_used_playlist_songs_sort_by", enumEntries<SongRepository.SortBy>(), SongRepository.SortBy.CUSTOM)
+    val lastUsedPlaylistSongsSortReverse = BooleanEntry("last_used_playlist_songs_sort_reverse", false)
+    val lastUsedAlbumSongsSortBy = EnumEntry("last_used_album_songs_sort_by", enumEntries<SongRepository.SortBy>(), SongRepository.SortBy.TRACK_NUMBER)
     val lastUsedAlbumSongsSortReverse = BooleanEntry("last_used_album_songs_sort_reverse", false)
-    val lastUsedTreePathSortBy = EnumEntry(
-        "last_used_tree_path_sort_by",
-        enumEntries<StringListUtils.SortBy>(),
-        StringListUtils.SortBy.NAME,
-    )
+    val lastUsedTreePathSortBy = EnumEntry("last_used_tree_path_sort_by", enumEntries<StringListUtils.SortBy>(), StringListUtils.SortBy.NAME)
     val lastUsedTreePathSortReverse = BooleanEntry("last_used_tree_path_sort_reverse", false)
-    val lastUsedFoldersSortBy = EnumEntry(
-        "last_used_folders_sort_by",
-        enumEntries<StringListUtils.SortBy>(),
-        StringListUtils.SortBy.NAME,
-    )
+    val lastUsedFoldersSortBy = EnumEntry("last_used_folders_sort_by", enumEntries<StringListUtils.SortBy>(), StringListUtils.SortBy.NAME)
     val lastUsedFoldersSortReverse = BooleanEntry("last_used_folders_sort_reverse", false)
-    val lastUsedFoldersHorizontalGridColumns = IntEntry(
-        "last_used_folders_horizontal_grid_columns",
-        ResponsiveGridColumns.DEFAULT_HORIZONTAL_COLUMNS,
-    )
-    val lastUsedFoldersVerticalGridColumns = IntEntry(
-        "last_used_folders_vertical_grid_columns",
-        ResponsiveGridColumns.DEFAULT_VERTICAL_COLUMNS,
-    )
+    val lastUsedFoldersHorizontalGridColumns = IntEntry("last_used_folders_horizontal_grid_columns", ResponsiveGridColumns.DEFAULT_HORIZONTAL_COLUMNS)
+    val lastUsedFoldersVerticalGridColumns = IntEntry("last_used_folders_vertical_grid_columns", ResponsiveGridColumns.DEFAULT_VERTICAL_COLUMNS)
     val lastDisabledTreePaths = StringSetEntry("last_disabled_tree_paths", emptySet())
     val previousSongQueue = object : Entry<RadioQueue.Serialized?>("previous_song_queue") {
-        override fun getValueInternal() = getSharedPreferences().getString(key, null)?.let {
-            RadioQueue.Serialized.parse(it)
-        }
-
-        override fun setValueInternal(value: RadioQueue.Serialized?) =
-            getSharedPreferences().edit {
-                putString(key, value?.serialize())
-            }
+        override fun getValueInternal() = getSharedPreferences().getString(key, null)?.let { RadioQueue.Serialized.parse(it) }
+        override fun setValueInternal(value: RadioQueue.Serialized?) = getSharedPreferences().edit { putString(key, value?.serialize()) }
     }
     val lastHomeTab = EnumEntry("home_last_page", enumEntries<HomePage>(), HomePage.Songs)
     val songsFilterPattern = NullableStringEntry("songs_filter_pattern")
@@ -268,27 +179,9 @@ class Settings(private val symphony: Symphony) {
     val pauseOnHeadphonesDisconnect = BooleanEntry("pause_on_headphones_disconnect", true)
     val primaryColor = NullableStringEntry("primary_color")
     val fadePlaybackDuration = FloatEntry("fade_playback_duration", 1f)
-    val homeTabs = EnumSetEntry(
-        "home_tabs",
-        enumEntries<HomePage>(),
-        setOf(
-            HomePage.ForYou,
-            HomePage.Songs,
-            HomePage.Albums,
-            HomePage.Artists,
-            HomePage.Playlists,
-        ),
-    )
-    val homePageBottomBarLabelVisibility = EnumEntry(
-        "home_page_bottom_bar_label_visibility",
-        enumEntries<HomePageBottomBarLabelVisibility>(),
-        HomePageBottomBarLabelVisibility.ALWAYS_VISIBLE,
-    )
-    val forYouContents = EnumSetEntry(
-        "for_you_contents",
-        enumEntries<ForYou>(),
-        setOf(ForYou.Albums, ForYou.Artists),
-    )
+    val homeTabs = EnumSetEntry("home_tabs", enumEntries<HomePage>(), setOf(HomePage.ForYou, HomePage.Songs, HomePage.Albums, HomePage.Artists, HomePage.Playlists))
+    val homePageBottomBarLabelVisibility = EnumEntry("home_page_bottom_bar_label_visibility", enumEntries<HomePageBottomBarLabelVisibility>(), HomePageBottomBarLabelVisibility.ALWAYS_VISIBLE)
+    val forYouContents = EnumSetEntry("for_you_contents", enumEntries<ForYou>(), setOf(ForYou.Albums, ForYou.Artists))
     val blacklistFolders = StringSetEntry("blacklist_folders", emptySet())
     val whitelistFolders = StringSetEntry("whitelist_folders", emptySet())
     val readIntroductoryMessage = BooleanEntry("introductory_message", false)
@@ -299,43 +192,30 @@ class Settings(private val symphony: Symphony) {
     val miniPlayerTrackControls = BooleanEntry("mini_player_extended_controls", false)
     val miniPlayerSeekControls = BooleanEntry("mini_player_seek_controls", false)
     val fontFamily = NullableStringEntry("font_family")
-    val nowPlayingControlsLayout = EnumEntry(
-        "now_playing_controls_layout",
-        enumEntries<NowPlayingControlsLayout>(),
-        NowPlayingControlsLayout.CompactLeft,
-    )
+    val nowPlayingControlsLayout = EnumEntry("now_playing_controls_layout", enumEntries<NowPlayingControlsLayout>(), NowPlayingControlsLayout.CompactLeft)
     val showUpdateToast = BooleanEntry("show_update_toast", true)
     val fontScale = FloatEntry("font_scale", 1f)
     val contentScale = FloatEntry("content_scale", 1f)
-    val nowPlayingLyricsLayout = EnumEntry(
-        "now_playing_lyrics_layout",
-        enumEntries<NowPlayingLyricsLayout>(),
-        NowPlayingLyricsLayout.ReplaceArtwork,
-    )
+    val nowPlayingLyricsLayout = EnumEntry("now_playing_lyrics_layout", enumEntries<NowPlayingLyricsLayout>(), NowPlayingLyricsLayout.ReplaceArtwork)
     val artistTagSeparators = StringSetEntry("artist_tag_separators", setOf(";", "/", ",", "+"))
     val genreTagSeparators = StringSetEntry("genre_tag_separators", setOf(";", "/", ",", "+"))
     val miniPlayerTextMarquee = BooleanEntry("mini_player_text_marquee", true)
     val mediaFolders = object : Entry<Set<Uri>>("media_folders") {
-        override fun getValueInternal() = getSharedPreferences().getStringSet(key, null)
-            ?.map { Uri.parse(it) }
-            ?.toSet()
-            ?: emptySet()
-
-        override fun setValueInternal(value: Set<Uri>) =
-            getSharedPreferences().edit {
-                putStringSet(key, value.map { it.toString() }.toSet())
-            }
+        override fun getValueInternal() = getSharedPreferences().getStringSet(key, null)?.map { Uri.parse(it) }?.toSet() ?: emptySet()
+        override fun setValueInternal(value: Set<Uri>) = getSharedPreferences().edit { putStringSet(key, value.map { it.toString() }.toSet()) }
     }
-    val artworkQuality = EnumEntry(
-        "artwork_quality",
-        enumEntries<ImagePreserver.Quality>(),
-        ImagePreserver.Quality.Medium,
-    )
+    val artworkQuality = EnumEntry("artwork_quality", enumEntries<ImagePreserver.Quality>(), ImagePreserver.Quality.Medium)
     val useMetaphony = BooleanEntry("use_metaphony", true)
     val gaplessPlayback = BooleanEntry("gapless_playback", true)
     val caseSensitiveSorting = BooleanEntry("case_sensitive_sorting", false)
     val lyricsKeepScreenAwake = BooleanEntry("lyrics_keep_screen_awake", true)
     val enableReplayGain = BooleanEntry("enable_replay_gain", true)
+    
+    // Overture: Lyrics Settings
+    val lyricsAlignment = EnumEntry("lyrics_alignment", enumEntries<LyricsAlignment>(), LyricsAlignment.Center)
+    val lyricsAnimationEngine = EnumEntry("lyrics_animation_engine", enumEntries<LyricsAnimationEngine>(), LyricsAnimationEngine.Expressive)
+    val lyricsUnfocusedOpacity = FloatEntry("lyrics_unfocused_opacity", 0.3f)
+    val lyricsSyncOffset = IntEntry("lyrics_sync_offset", 0)
 
     private fun getSharedPreferences() = symphony.applicationContext
         .getSharedPreferences("settings", Context.MODE_PRIVATE)

@@ -60,6 +60,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import io.github.zyrouge.symphony.services.LyricsAlignment
+import io.github.zyrouge.symphony.services.LyricsAnimationEngine
 import io.github.zyrouge.symphony.ui.helpers.TransitionDurations
 import io.github.zyrouge.symphony.ui.helpers.ViewContext
 import io.github.zyrouge.symphony.utils.TimedContent
@@ -79,7 +81,7 @@ data class TimedContentTextStyle(
         fun defaultStyle(
             textStyle: TextStyle,
             contentColor: Color,
-        ) = textStyle.copy(color = contentColor, textAlign = TextAlign.Center).let {
+        ) = textStyle.copy(color = contentColor).let {
             TimedContentTextStyle(
                 highlighted = it.copy(fontWeight = FontWeight.SemiBold),
                 active = it.copy(fontWeight = FontWeight.Bold),
@@ -111,11 +113,40 @@ fun TimedContentText(
     var activeIndex by remember { mutableIntStateOf(-1) }
 
     val playbackPosition by context.symphony.radio.observatory.playbackPosition.collectAsState()
-    val currentPosition = playbackPosition.played
+    
+    // Overture: Lyrics Settings
+    val alignment by context.symphony.settings.lyricsAlignment.flow.collectAsState()
+    val engine by context.symphony.settings.lyricsAnimationEngine.flow.collectAsState()
+    val unfocusedOpacity by context.symphony.settings.lyricsUnfocusedOpacity.flow.collectAsState()
+    val syncOffset by context.symphony.settings.lyricsSyncOffset.flow.collectAsState()
+
+    val currentPosition = playbackPosition.played + syncOffset
+
+    val horizontalAlignment = when (alignment) {
+        LyricsAlignment.Left -> Alignment.Start
+        LyricsAlignment.Center -> Alignment.CenterHorizontally
+        LyricsAlignment.Right -> Alignment.End
+    }
+    val textAlign = when (alignment) {
+        LyricsAlignment.Left -> TextAlign.Start
+        LyricsAlignment.Center -> TextAlign.Center
+        LyricsAlignment.Right -> TextAlign.End
+    }
+    
+    val scaleSpec = if (engine == LyricsAnimationEngine.Expressive) {
+        spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow)
+    } else {
+        tween(300)
+    }
+    val alphaSpec = if (engine == LyricsAnimationEngine.Expressive) {
+        spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium)
+    } else {
+        tween(300)
+    }
 
     LaunchedEffect(content) {
         while (isActive) {
-            val pos = context.symphony.radio.currentPlaybackPosition?.played ?: 0L
+            val pos = (context.symphony.radio.currentPlaybackPosition?.played ?: 0L) + syncOffset
             if (content.isSynced) {
                 val nActiveIndex = content.lines.indexOfLast { it.time <= pos }
                 if (nActiveIndex != -1 && activeIndex != nActiveIndex) {
@@ -140,7 +171,7 @@ fun TimedContentText(
             )
             .fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(style.spacing),
-        horizontalAlignment = Alignment.CenterHorizontally // Overture: Center lyrics
+        horizontalAlignment = horizontalAlignment
     ) {
         item {
             Spacer(modifier = Modifier.height(padding.calculateTopPadding() + 64.dp))
@@ -151,27 +182,21 @@ fun TimedContentText(
 
             val scale by animateFloatAsState(
                 targetValue = if (active) 1.1f else 0.95f, 
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessLow,
-                ),
+                animationSpec = scaleSpec,
                 label = "LyricsScale",
             )
 
             val alpha by animateFloatAsState(
-                targetValue = if (active) 1f else 0.3f, 
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioNoBouncy,
-                    stiffness = Spring.StiffnessMedium,
-                ),
+                targetValue = if (active) 1f else unfocusedOpacity, 
+                animationSpec = alphaSpec,
                 label = "LyricsAlpha",
             )
 
             val textStyle by animateTextStyleAsState(
                 targetValue = when {
-                    active -> style.active
-                    highlight -> style.highlighted
-                    else -> style.inactive
+                    active -> style.active.copy(textAlign = textAlign)
+                    highlight -> style.highlighted.copy(textAlign = textAlign)
+                    else -> style.inactive.copy(textAlign = textAlign)
                 },
             )
 
@@ -182,7 +207,14 @@ fun TimedContentText(
                     scaleX = scale
                     scaleY = scale
                     this.alpha = alpha
-                    transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.5f, 0.5f) // Center scale
+                    transformOrigin = androidx.compose.ui.graphics.TransformOrigin(
+                        when (alignment) {
+                            LyricsAlignment.Left -> 0f
+                            LyricsAlignment.Center -> 0.5f
+                            LyricsAlignment.Right -> 1f
+                        }, 
+                        0.5f
+                    )
                 }
                 .pointerInput(Unit) {
                     detectTapGestures { _ ->
@@ -201,7 +233,11 @@ fun TimedContentText(
             if (active && line.words.isNotEmpty()) {
                 FlowRow(
                     modifier = modifier,
-                    horizontalArrangement = Arrangement.Center // Center words
+                    horizontalArrangement = when (alignment) {
+                        LyricsAlignment.Left -> Arrangement.Start
+                        LyricsAlignment.Center -> Arrangement.Center
+                        LyricsAlignment.Right -> Arrangement.End
+                    }
                 ) {
                     line.words.forEachIndexed { wordIndex, word ->
                         val isWordActive = currentPosition >= word.time && 
@@ -211,10 +247,7 @@ fun TimedContentText(
 
                         val wordScale by animateFloatAsState(
                             targetValue = if (isWordActive) 1.15f else 1f,
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioHighBouncy,
-                                stiffness = Spring.StiffnessLow
-                            ),
+                            animationSpec = scaleSpec,
                             label = "WordScale"
                         )
 
@@ -240,12 +273,10 @@ fun TimedContentText(
                 )
             }
 
-            // Overture: Organic Instrumental Pause Indicator
             if (active && i < content.lines.lastIndex) {
                 val nextLine = content.lines[i + 1]
-                // Show dots if gap > 5 seconds and we are 1 second past current line
                 if (nextLine.time - currentPosition > 5000 && currentPosition > line.time + 1000) {
-                    InstrumentalIndicator(color = style.active.color)
+                    InstrumentalIndicator(color = style.active.color, alignment = horizontalAlignment)
                 }
             }
         }
@@ -256,14 +287,14 @@ fun TimedContentText(
 }
 
 @Composable
-fun InstrumentalIndicator(color: Color) {
+fun InstrumentalIndicator(color: Color, alignment: Alignment.Horizontal) {
     val infiniteTransition = rememberInfiniteTransition(label = "InstrumentalDots")
     
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 24.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally)
+        horizontalArrangement = Arrangement.spacedBy(12.dp, alignment)
     ) {
         for (i in 0..2) {
             val scale by infiniteTransition.animateFloat(
