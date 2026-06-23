@@ -4,20 +4,36 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path android:pathData="M54,20 C35.222,20 20,35.222 20,54 C20,72.778 35.222,88 54,88 C72.778,88 88,72.778 88,54 C88,35.222 72.778,20 54,20 Z M54,78 C40.745,78 30,67.255 30,54 C30,40.745 40.745,30 54,30 C67.255,30 78,40.745 78,54 C78,67.255 67.255,78 54,78 Z">
-        <aapt:attr name="android:fillColor">
-            <gradient android:startX="20" android:startY="20" android:endX="88" android:endY="88" android:type="linear">
-                <item android:offset="0" android:color="#FFC084FC"/>
-                <item android:offset="1" android:color="#FFA855F7"/>
+
+    <!-- El anillo 'O' hueco -->
+    <path
+        android:pathData="M 54 26 A 28 28 0 1 0 54 82 A 28 28 0 1 0 54 26 Z"
+        android:strokeWidth="8"
+        android:strokeLineCap="round">
+        <aapt:attr name="android:strokeColor">
+            <gradient android:startX="24" android:startY="20" android:endX="86" android:endY="88" android:type="linear">
+                <item android:offset="0" android:color="#FFF7F4FF"/>
+                <item android:offset="0.45" android:color="#FFC9B7FF"/>
+                <item android:offset="1" android:color="#FF8B6CFF"/>
             </gradient>
         </aapt:attr>
     </path>
-    <path android:pathData="M46,38 L70,54 L46,70 Z">
+
+    <!-- El botón de Play central -->
+    <path
+        android:pathData="M 48 43.5 C 48 41.5 50.2 40.5 51.8 41.5 L 66.8 52 C 68.2 53 68.2 55 66.8 56 L 51.8 66.5 C 50.2 67.5 48 66.5 48 64.5 Z">
         <aapt:attr name="android:fillColor">
-            <gradient android:startX="46" android:startY="38" android:endX="70" android:endY="70" android:type="linear">
-                <item android:offset="0" android:color="#FFC084FC"/>
-                <item android:offset="1" android:color="#FFA855F7"/>
+            <gradient android:startX="42" android:startY="34" android:endX="69" android:endY="76" android:type="linear">
+                <item android:offset="0" android:color="#FFFFFFFF"/>
+                <item android:offset="1" android:color="#FFD8C9FF"/>
             </gradient>
         </aapt:attr>
     </path>
+
+    <!-- Acento sutil M3E -->
+    <path
+        android:pathData="M 42 48 C 45 44 51 42 57 43"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:strokeColor="#40FFFFFF" />
 </vector>
