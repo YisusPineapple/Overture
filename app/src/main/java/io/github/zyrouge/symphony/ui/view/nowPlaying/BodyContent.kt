@@ -12,7 +12,6 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -459,7 +458,7 @@ private fun NowPlayingSeekBar(
         label = "ThumbRadiusAnimation"
     )
 
-    BoxWithConstraints(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(sliderHeight),
@@ -692,7 +691,7 @@ private fun NowPlayingControlButton(
     IconButton(
         modifier = Modifier
             .size(buttonSize)
-            .bounceScale(interactionSource) // Overture: M3E Bounce
+            .bounceScale(interactionSource)
             .background(backgroundColor, CircleShape),
         onClick = onClick,
         interactionSource = interactionSource

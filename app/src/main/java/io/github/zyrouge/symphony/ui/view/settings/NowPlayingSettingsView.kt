@@ -8,11 +8,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.FormatAlignLeft
 import androidx.compose.material.icons.automirrored.filled.Wysiwyg
 import androidx.compose.material.icons.automirrored.outlined.Article
 import androidx.compose.material.icons.filled.Animation
 import androidx.compose.material.icons.filled.Dashboard
-import androidx.compose.material.icons.filled.FormatAlignLeft
 import androidx.compose.material.icons.filled.Forward30
 import androidx.compose.material.icons.filled.Lyrics
 import androidx.compose.material.icons.filled.Opacity
@@ -160,7 +160,7 @@ fun NowPlayingSettingsView(context: ViewContext) {
                     HorizontalDivider()
                     SettingsOptionTile(
                         icon = {
-                            Icon(Icons.Filled.FormatAlignLeft, null)
+                            Icon(Icons.AutoMirrored.Filled.FormatAlignLeft, null)
                         },
                         title = {
                             Text("Text Alignment") // Hardcoded until added to i18n
