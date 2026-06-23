@@ -33,6 +33,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
@@ -58,6 +62,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import io.github.zyrouge.symphony.services.groove.Groove
+import io.github.zyrouge.symphony.ui.components.AdaptiveSnackbar
 import io.github.zyrouge.symphony.ui.components.IconButtonPlaceholderSize
 import io.github.zyrouge.symphony.ui.components.NewPlaylistDialog
 import io.github.zyrouge.symphony.ui.components.SongCard
@@ -82,6 +87,7 @@ fun QueueView(context: ViewContext) {
         initialFirstVisibleItemIndex = queueIndex.coerceAtLeast(0),
     )
     var showSaveDialog by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
 
     var draggingIndex by remember { mutableStateOf<Int?>(null) }
     var targetIndex by remember { mutableStateOf<Int?>(null) }
@@ -89,6 +95,11 @@ fun QueueView(context: ViewContext) {
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
+        snackbarHost = {
+            SnackbarHost(snackbarHostState) {
+                AdaptiveSnackbar(it)
+            }
+        },
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
@@ -147,7 +158,6 @@ fun QueueView(context: ViewContext) {
                         }
                         IconButton(
                             onClick = {
-                                // Overture: Clear all EXCEPT the currently playing song
                                 val indicesToRemove = queue.indices.filter { it != queueIndex }
                                 if (indicesToRemove.isNotEmpty()) {
                                     context.symphony.radio.queue.remove(indicesToRemove)
@@ -171,7 +181,7 @@ fun QueueView(context: ViewContext) {
                 } else {
                     LazyColumn(
                         state = listState,
-                        contentPadding = PaddingValues(bottom = 140.dp),
+                        contentPadding = PaddingValues(bottom = 180.dp), // Overture: Increased padding to avoid mini-player overlap
                         modifier = Modifier.pointerInput(queue) {
                             detectDragGesturesAfterLongPress(
                                 onDragStart = { offset ->
@@ -238,7 +248,20 @@ fun QueueView(context: ViewContext) {
                                 val dismissState = rememberSwipeToDismissBoxState(
                                     confirmValueChange = { dismissValue ->
                                         if (dismissValue != SwipeToDismissBoxValue.Settled) {
+                                            val removedSongId = queue[i]
                                             context.symphony.radio.queue.remove(i)
+                                            
+                                            // Overture: Undo Snackbar
+                                            coroutineScope.launch {
+                                                val result = snackbarHostState.showSnackbar(
+                                                    message = context.symphony.t.Delete, // Or a specific "Song removed" string
+                                                    actionLabel = context.symphony.t.Cancel, // Using Cancel as Undo
+                                                    duration = SnackbarDuration.Short
+                                                )
+                                                if (result == SnackbarResult.ActionPerformed) {
+                                                    context.symphony.radio.queue.add(removedSongId, i)
+                                                }
+                                            }
                                             true
                                         } else {
                                             false
@@ -248,7 +271,7 @@ fun QueueView(context: ViewContext) {
 
                                 Box(
                                     modifier = Modifier
-                                        .animateItem() // Overture: Fluid deletion animation
+                                        .animateItem() 
                                         .zIndex(zIndex)
                                         .graphicsLayer {
                                             this.translationY = translationY

@@ -1,6 +1,7 @@
 package io.github.zyrouge.symphony.ui.components
 
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.EaseInOutSine
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
@@ -50,9 +51,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.lerp
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.zyrouge.symphony.ui.helpers.TransitionDurations
@@ -74,12 +79,12 @@ data class TimedContentTextStyle(
         fun defaultStyle(
             textStyle: TextStyle,
             contentColor: Color,
-        ) = textStyle.copy(color = contentColor).let {
+        ) = textStyle.copy(color = contentColor, textAlign = TextAlign.Center).let {
             TimedContentTextStyle(
                 highlighted = it.copy(fontWeight = FontWeight.SemiBold),
                 active = it.copy(fontWeight = FontWeight.Bold),
                 inactive = it.copy(fontWeight = FontWeight.Normal),
-                spacing = 24.dp, // Overture: Increased spacing for cleaner look
+                spacing = 24.dp, 
             )
         }
     }
@@ -122,7 +127,7 @@ fun TimedContentText(
                     }
                 }
             }
-            delay(50) // Overture: Faster polling for precise word sync
+            delay(50) 
         }
     }
 
@@ -135,6 +140,7 @@ fun TimedContentText(
             )
             .fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(style.spacing),
+        horizontalAlignment = Alignment.CenterHorizontally // Overture: Center lyrics
     ) {
         item {
             Spacer(modifier = Modifier.height(padding.calculateTopPadding() + 64.dp))
@@ -144,7 +150,7 @@ fun TimedContentText(
             val active = i == activeIndex
 
             val scale by animateFloatAsState(
-                targetValue = if (active) 1.1f else 0.95f, // Overture: Larger active line
+                targetValue = if (active) 1.1f else 0.95f, 
                 animationSpec = spring(
                     dampingRatio = Spring.DampingRatioMediumBouncy,
                     stiffness = Spring.StiffnessLow,
@@ -153,7 +159,7 @@ fun TimedContentText(
             )
 
             val alpha by animateFloatAsState(
-                targetValue = if (active) 1f else 0.3f, // Overture: Dimmer inactive lines
+                targetValue = if (active) 1f else 0.3f, 
                 animationSpec = spring(
                     dampingRatio = Spring.DampingRatioNoBouncy,
                     stiffness = Spring.StiffnessMedium,
@@ -176,7 +182,7 @@ fun TimedContentText(
                     scaleX = scale
                     scaleY = scale
                     this.alpha = alpha
-                    transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0f, 0.5f)
+                    transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.5f, 0.5f) // Center scale
                 }
                 .pointerInput(Unit) {
                     detectTapGestures { _ ->
@@ -192,15 +198,12 @@ fun TimedContentText(
                     }
                 }
 
-            // Overture: Premium Karaoke Word-by-Word Rendering
             if (active && line.words.isNotEmpty()) {
                 FlowRow(
                     modifier = modifier,
-                    horizontalArrangement = Arrangement.Start
+                    horizontalArrangement = Arrangement.Center // Center words
                 ) {
                     line.words.forEachIndexed { wordIndex, word ->
-                        // A word is "active" if the current time is past its start time, 
-                        // AND before the next word's start time (or it's the last word).
                         val isWordActive = currentPosition >= word.time && 
                             (wordIndex == line.words.lastIndex || currentPosition < line.words[wordIndex + 1].time)
                         
@@ -237,11 +240,11 @@ fun TimedContentText(
                 )
             }
 
-            // Overture: Instrumental Pause Indicator
+            // Overture: Organic Instrumental Pause Indicator
             if (active && i < content.lines.lastIndex) {
                 val nextLine = content.lines[i + 1]
-                // If the gap between the end of this line and the start of the next is > 8 seconds
-                if (nextLine.time - currentPosition > 8000 && currentPosition > line.time + 2000) {
+                // Show dots if gap > 5 seconds and we are 1 second past current line
+                if (nextLine.time - currentPosition > 5000 && currentPosition > line.time + 1000) {
                     InstrumentalIndicator(color = style.active.color)
                 }
             }
@@ -259,15 +262,15 @@ fun InstrumentalIndicator(color: Color) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.Start)
+            .padding(vertical = 24.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally)
     ) {
         for (i in 0..2) {
             val scale by infiniteTransition.animateFloat(
-                initialValue = 0.5f,
+                initialValue = 0.4f,
                 targetValue = 1f,
                 animationSpec = infiniteRepeatable(
-                    animation = tween(500, delayMillis = i * 150),
+                    animation = tween(800, delayMillis = i * 200, easing = EaseInOutSine),
                     repeatMode = RepeatMode.Reverse
                 ),
                 label = "DotScale"
@@ -275,7 +278,7 @@ fun InstrumentalIndicator(color: Color) {
             
             Box(
                 modifier = Modifier
-                    .size(8.dp)
+                    .size(10.dp)
                     .graphicsLayer {
                         scaleX = scale
                         scaleY = scale

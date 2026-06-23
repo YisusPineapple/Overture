@@ -106,6 +106,10 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
         val index: Int = 0,
         val autostart: Boolean = true,
         val startPosition: Long? = null,
+        // True when the transition is triggered automatically (crossfade trigger or natural end).
+        // False for explicit user-initiated skips (Next / Previous / jumpTo).
+        // Controls whether the full fadePlaybackDuration or MANUAL_SKIP_FADE_MS is used.
+        val isAutoSkip: Boolean = false,
     )
 
     fun play(options: PlayOptions) {
@@ -141,11 +145,18 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
                     fadingPlayer?.setOnCrossfadeTriggerListener(null)
                     fadingPlayer?.setOnIsPlayingChangedListener(null)
                     
-                    val fadeDuration = (symphony.settings.fadePlaybackDuration.value * 1000).toInt()
+                    // Auto-skip: use the full crossfade duration so the outgoing and incoming
+                    // tracks overlap smoothly. Manual skip: quick 300 ms fade so the user's
+                    // action feels immediate and responsive.
+                    val fadeDuration = if (options.isAutoSkip) {
+                        (symphony.settings.fadePlaybackDuration.value * 1000).toInt()
+                    } else {
+                        RadioPlayer.MANUAL_SKIP_FADE_MS
+                    }
                     fadingPlayer?.changeVolume(
-                        to = RadioPlayer.MIN_VOLUME, 
-                        durationMs = fadeDuration, 
-                        curve = RadioEffects.FadeCurve.EQUAL_POWER
+                        to = RadioPlayer.MIN_VOLUME,
+                        durationMs = fadeDuration,
+                        curve = RadioEffects.FadeCurve.EQUAL_POWER,
                     ) {
                         fadingPlayer?.destroy()
                         if (fadingPlayer == prevPlayer) fadingPlayer = null
@@ -177,7 +188,14 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
                 setPitch(persistedPitch, true)
                 isPauseRequested = false
                 if (options.autostart) {
-                    start()
+                    // Mirror the fade-in duration to match the fade-out so the crossfade
+                    // feels symmetrical. Manual skips always use MANUAL_SKIP_FADE_MS.
+                    val fadeInMs = if (options.isAutoSkip && symphony.settings.fadePlayback.value) {
+                        (symphony.settings.fadePlaybackDuration.value * 1000).toInt()
+                    } else {
+                        RadioPlayer.MANUAL_SKIP_FADE_MS
+                    }
+                    start(fadeInMs)
                 }
             }
             player!!.setOnPlaybackPositionListener {
@@ -196,7 +214,9 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
                 if (!pauseOnCurrentSongEnd) {
                     val (nextSongIndex, autostart) = getNextSong(SongFinishSource.Finish)
                     if (autostart) {
-                        play(PlayOptions(index = nextSongIndex, autostart = true))
+                        // This is an automatic transition: use the full fadePlaybackDuration
+                        // so the outgoing track and the incoming track overlap (true crossfade).
+                        play(PlayOptions(index = nextSongIndex, autostart = true, isAutoSkip = true))
                     }
                 }
             }
@@ -259,7 +279,7 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
         start()
     }
 
-    private fun start() {
+    private fun start(fadeInMs: Int = RadioPlayer.MANUAL_SKIP_FADE_MS) {
         player?.let {
             val hasFocus = focus.requestFocus()
             if (symphony.settings.requireAudioFocus.value && !hasFocus) {
@@ -268,7 +288,7 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
             acquireWakeLock()
             if (it.fadePlayback) {
                 it.changeVolumeInstant(RadioPlayer.MIN_VOLUME)
-                it.changeVolume(RadioPlayer.MAX_VOLUME, durationMs = 300) {}
+                it.changeVolume(RadioPlayer.MAX_VOLUME, durationMs = fadeInMs) {}
             } else {
                 it.changeVolumeInstant(RadioPlayer.MAX_VOLUME)
             }
@@ -457,7 +477,13 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
             autostart = false
             setPauseOnCurrentSongEnd(false)
         }
-        play(PlayOptions(nextSongIndex, autostart = autostart))
+        // SongFinishSource.Finish = natural end → auto-skip semantics (may fade).
+        // SongFinishSource.Exception = error skip → treat as manual (quick 300 ms fade).
+        play(PlayOptions(
+            index = nextSongIndex,
+            autostart = autostart,
+            isAutoSkip = source == SongFinishSource.Finish,
+        ))
     }
 
     private fun getNextSong(source: SongFinishSource): Pair<Int, Boolean> {

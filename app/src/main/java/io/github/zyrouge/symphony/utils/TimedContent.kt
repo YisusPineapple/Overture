@@ -14,11 +14,18 @@ data class TimedContent(val lines: List<TimedLine>) {
         val lrcLineSeparatorRegex = Regex("""\n|\r|\r\n""")
         val lrcLineFilterRegex = Regex("""^\[\s*(\d+):(\d+)\.(\d+)?\s*](.*)""")
         val lrcWordFilterRegex = Regex("""<(\d+):(\d+)\.(\d+)>([^<]*)""")
+        // Overture: Regex to filter out metadata tags like [ar:Artist], [ti:Title], [by:Author]
+        val lrcMetadataRegex = Regex("""^\[(ar|ti|al|by|offset|length|re|ve):.*]""", RegexOption.IGNORE_CASE)
 
         fun fromLyrics(content: String): TimedContent {
             var lastTime = 0L
             val lines = content.split(lrcLineSeparatorRegex).mapNotNull { x ->
-                val match = lrcLineFilterRegex.matchEntire(x)
+                val trimmed = x.trim()
+                if (trimmed.isEmpty() || lrcMetadataRegex.matches(trimmed)) {
+                    return@mapNotNull null
+                }
+
+                val match = lrcLineFilterRegex.matchEntire(trimmed)
                 if (match != null) {
                     val time = parseTime(match.groupValues[1], match.groupValues[2], match.groupValues[3])
                     val rawText = match.groupValues[4]
@@ -46,8 +53,7 @@ data class TimedContent(val lines: List<TimedLine>) {
                     lastTime = time
                     TimedLine(time, cleanText, words)
                 } else {
-                    val trimmed = x.trim()
-                    if (trimmed.isNotEmpty()) TimedLine(lastTime, trimmed, emptyList()) else null
+                    TimedLine(lastTime, trimmed, emptyList())
                 }
             }
             return TimedContent(lines)

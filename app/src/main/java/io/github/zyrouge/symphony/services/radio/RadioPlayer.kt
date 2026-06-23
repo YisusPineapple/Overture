@@ -337,5 +337,8 @@ class RadioPlayer(val symphony: Symphony, val song: Song) {
         const val DUCK_VOLUME = 0.2f
         const val DEFAULT_SPEED = 1f
         const val DEFAULT_PITCH = 1f
+        // Fixed fade duration (ms) used for manual user-initiated skips (Next / Previous).
+        // Crossfade on natural song end uses fadePlaybackDuration from settings instead.
+        const val MANUAL_SKIP_FADE_MS = 300
     }
 }

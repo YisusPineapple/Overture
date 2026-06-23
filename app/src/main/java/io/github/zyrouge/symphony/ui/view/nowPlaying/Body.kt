@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import io.github.zyrouge.symphony.ui.components.swipeable
 import io.github.zyrouge.symphony.ui.helpers.ScreenOrientation
 import io.github.zyrouge.symphony.ui.helpers.ViewContext
 import io.github.zyrouge.symphony.ui.view.NowPlayingData
@@ -47,11 +48,13 @@ fun NowPlayingBody(context: ViewContext, data: NowPlayingData) {
         )
     }
 
-    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxSize()
+            .swipeable(onSwipeDown = { context.navController.popBackStack() }) // Overture: Swipe down to minimize
+    ) {
         val orientation = ScreenOrientation.fromConstraints(this@BoxWithConstraints)
         
-        // Overture: Enhanced Ambient Background
-        // Reduced opacity to let the artwork shine through, and boosted saturation by 2x
         val glassOverlayColor = MaterialTheme.colorScheme.background.copy(alpha = 0.45f)
         val colorMatrix = remember { ColorMatrix().apply { setToSaturation(2f) } }
 
@@ -67,7 +70,7 @@ fun NowPlayingBody(context: ViewContext, data: NowPlayingData) {
                 colorFilter = ColorFilter.colorMatrix(colorMatrix),
                 modifier = Modifier
                     .fillMaxSize()
-                    .blur(100.dp) // Increased blur radius for smoother ambient
+                    .blur(100.dp) 
                     .drawWithContent {
                         drawContent()
                         drawRect(glassOverlayColor)
@@ -111,7 +114,7 @@ fun NowPlayingBody(context: ViewContext, data: NowPlayingData) {
                                 modifier = Modifier
                                     .weight(1f)
                                     .fillMaxHeight()
-                                    .padding(32.dp), // More padding so artwork isn't huge
+                                    .padding(32.dp), 
                                 contentAlignment = Alignment.Center,
                             ) {
                                 NowPlayingBodyCover(context, data, states, orientation)
@@ -121,7 +124,7 @@ fun NowPlayingBody(context: ViewContext, data: NowPlayingData) {
                                     modifier = Modifier
                                         .fillMaxSize()
                                         .verticalScroll(rememberScrollState()),
-                                    verticalArrangement = Arrangement.Center // Center controls vertically
+                                    verticalArrangement = Arrangement.Center 
                                 ) {
                                     NowPlayingLandscapeAppBar(context)
                                     NowPlayingBodyContent(context, data)

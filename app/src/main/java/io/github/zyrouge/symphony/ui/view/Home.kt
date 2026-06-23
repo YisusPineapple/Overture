@@ -199,6 +199,8 @@ fun HomeView(context: ViewContext) {
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
+        // Transparent so the Liquid Glass tinted surface from BaseView shows through.
+        containerColor = Color.Transparent,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             CenterAlignedTopAppBar(

@@ -4,11 +4,17 @@ import androidx.compose.animation.AnimatedContentScope
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDestination
 import androidx.navigation.NavGraphBuilder
@@ -41,6 +47,14 @@ import io.github.zyrouge.symphony.ui.view.settings.UpdateSettingsViewRoute
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.serializer
 
+// Fraction of the dominant artwork color blended into the app background surface.
+// 0.12f gives a perceptible but non-overwhelming tint in both light and dark themes.
+private const val LIQUID_GLASS_TINT_FRACTION = 0.12f
+
+// Duration (ms) for the background color transition between tracks.
+// 1500 ms feels cinematic — fast enough to track changes, slow enough not to distract.
+private const val LIQUID_GLASS_TRANSITION_MS = 1500
+
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun BaseView(symphony: Symphony, activity: MainActivity) {
@@ -54,7 +68,20 @@ fun BaseView(symphony: Symphony, activity: MainActivity) {
     }
 
     SymphonyTheme(context) {
-        Surface(color = MaterialTheme.colorScheme.background) {
+        // Overture: Liquid Glass — blend the current track's dominant color into the app
+        // background so every screen shares the same dynamic tinted-crystal aesthetic.
+        // The Surface sits beneath all NavHost destinations; each screen that wants to
+        // participate just needs containerColor = Color.Transparent on its Scaffold.
+        val dominantColorInt by context.symphony.radio.observatory.dominantColor.collectAsState()
+        val baseBg = MaterialTheme.colorScheme.background
+        val liquidGlassBg by animateColorAsState(
+            targetValue = dominantColorInt
+                ?.let { lerp(baseBg, Color(it), LIQUID_GLASS_TINT_FRACTION) }
+                ?: baseBg,
+            animationSpec = tween(durationMs = LIQUID_GLASS_TRANSITION_MS),
+            label = "LiquidGlassBackgroundTint",
+        )
+        Surface(color = liquidGlassBg) {
             SharedTransitionLayout {
                 CompositionLocalProvider(
                     LocalSharedTransitionScope provides this
