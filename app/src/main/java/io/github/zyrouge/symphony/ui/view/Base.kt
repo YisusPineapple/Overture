@@ -78,7 +78,7 @@ fun BaseView(symphony: Symphony, activity: MainActivity) {
             targetValue = dominantColorInt
                 ?.let { lerp(baseBg, Color(it), LIQUID_GLASS_TINT_FRACTION) }
                 ?: baseBg,
-            animationSpec = tween(durationMs = LIQUID_GLASS_TRANSITION_MS),
+            animationSpec = tween(durationMillis = LIQUID_GLASS_TRANSITION_MS),
             label = "LiquidGlassBackgroundTint",
         )
         Surface(color = liquidGlassBg) {
