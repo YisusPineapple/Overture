@@ -1,6 +1,7 @@
 package io.github.zyrouge.symphony.ui.components
 
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.EaseInOutSine
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
@@ -133,12 +134,13 @@ fun TimedContentText(
         LyricsAlignment.Right -> TextAlign.End
     }
     
-    val scaleSpec = if (engine == LyricsAnimationEngine.Expressive) {
+    // Overture: Explicitly typed AnimationSpec<Float> to fix Kotlin type inference errors
+    val scaleSpec: AnimationSpec<Float> = if (engine == LyricsAnimationEngine.Expressive) {
         spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow)
     } else {
         tween(300)
     }
-    val alphaSpec = if (engine == LyricsAnimationEngine.Expressive) {
+    val alphaSpec: AnimationSpec<Float> = if (engine == LyricsAnimationEngine.Expressive) {
         spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium)
     } else {
         tween(300)
