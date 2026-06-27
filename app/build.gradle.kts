@@ -10,6 +10,7 @@ plugins {
 android {
     namespace = "com.yisuspineapple.overture"
     compileSdk = libs.versions.compile.sdk.get().toInt()
+    ndkVersion = "26.1.10909125"
 
     defaultConfig {
         applicationId = "com.yisuspineapple.overture"

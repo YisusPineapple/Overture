@@ -6,6 +6,7 @@ plugins {
 android {
     namespace = "me.zyrouge.symphony.metaphony"
     compileSdk = libs.versions.compile.sdk.get().toInt()
+    ndkVersion = "26.1.10909125"
 
     defaultConfig {
         minSdk = 24

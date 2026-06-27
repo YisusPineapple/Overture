@@ -31,76 +31,100 @@ object ThemeColorSchemes {
     private const val LightOnSurfaceVariantLightness = -0.45f
     private const val DarkToBlackBlendRatio = 0.4f
 
-    fun createLightColorScheme(primaryColor: Color) = lightColorScheme(
-        primary = primaryColor,
-        onPrimary = LightContrastColor,
-        primaryContainer = primaryColor,
-        onPrimaryContainer = LightContrastColor,
-        secondary = primaryColor,
-        onSecondary = LightContrastColor,
-        secondaryContainer = primaryColor,
-        onSecondaryContainer = LightContrastColor,
-        tertiary = primaryColor,
-        onTertiary = LightContrastColor,
-        tertiaryContainer = primaryColor,
-        onTertiaryContainer = LightContrastColor,
-        background = blendColors(LightBackgroundColor, primaryColor, BackgroundBlendRatio),
-        onBackground = adjustLightness(primaryColor, LightOnBackgroundLightness),
-        surface = blendColors(LightSurfaceColor, primaryColor, SurfaceBlendRatio),
-        onSurface = adjustLightness(primaryColor, LightOnSurfaceLightness),
-        surfaceVariant = blendColors(LightSurfaceVariantColor, primaryColor, SurfaceBlendRatio),
-        onSurfaceVariant = adjustLightness(primaryColor, LightOnSurfaceVariantLightness),
-    )
+    // Overture: Ensures the generated primary color is always readable against the background
+    private fun ensureSafeLuminance(color: Color, isDark: Boolean): Color {
+        val hsl = FloatArray(3)
+        ColorUtils.colorToHSL(color.toArgb(), hsl)
+        
+        if (isDark) {
+            // In dark mode, colors must be light enough to be visible
+            if (hsl[2] < 0.6f) hsl[2] = 0.6f 
+        } else {
+            // In light mode, colors must be dark enough to be visible
+            if (hsl[2] > 0.4f) hsl[2] = 0.4f
+        }
+        return Color(ColorUtils.HSLToColor(hsl))
+    }
 
-    fun createDarkColorScheme(PrimaryColor: Color) = darkColorScheme(
-        primary = PrimaryColor,
-        onPrimary = adjustLightness(PrimaryColor, DarkOnPrimaryLightness),
-        primaryContainer = PrimaryColor,
-        onPrimaryContainer = LightContrastColor,
-        secondary = PrimaryColor,
-        onSecondary = adjustLightness(PrimaryColor, DarkOnSecondaryLightness),
-        secondaryContainer = PrimaryColor,
-        onSecondaryContainer = LightContrastColor,
-        tertiary = PrimaryColor,
-        onTertiary = adjustLightness(PrimaryColor, DarkOnTertiaryLightness),
-        tertiaryContainer = PrimaryColor,
-        onTertiaryContainer = LightContrastColor,
-        background = blendColors(DarkBackgroundColor, PrimaryColor, BackgroundBlendRatio),
-        onBackground = LightContrastColor,
-        surface = blendColors(DarkSurfaceColor, PrimaryColor, SurfaceBlendRatio),
-        onSurface = LightContrastColor,
-        surfaceVariant = blendColors(
-            DarkSurfaceVariantColor,
-            PrimaryColor,
-            SurfaceVariantBlendRatio
-        ),
-        onSurfaceVariant = LightContrastColor,
-    )
+    fun createLightColorScheme(baseColor: Color): ColorScheme {
+        val primaryColor = ensureSafeLuminance(baseColor, isDark = false)
+        return lightColorScheme(
+            primary = primaryColor,
+            onPrimary = LightContrastColor,
+            primaryContainer = primaryColor,
+            onPrimaryContainer = LightContrastColor,
+            secondary = primaryColor,
+            onSecondary = LightContrastColor,
+            secondaryContainer = primaryColor,
+            onSecondaryContainer = LightContrastColor,
+            tertiary = primaryColor,
+            onTertiary = LightContrastColor,
+            tertiaryContainer = primaryColor,
+            onTertiaryContainer = LightContrastColor,
+            background = blendColors(LightBackgroundColor, primaryColor, BackgroundBlendRatio),
+            onBackground = adjustLightness(primaryColor, LightOnBackgroundLightness),
+            surface = blendColors(LightSurfaceColor, primaryColor, SurfaceBlendRatio),
+            onSurface = adjustLightness(primaryColor, LightOnSurfaceLightness),
+            surfaceVariant = blendColors(LightSurfaceVariantColor, primaryColor, SurfaceBlendRatio),
+            onSurfaceVariant = adjustLightness(primaryColor, LightOnSurfaceVariantLightness),
+        )
+    }
 
-    fun createBlackColorScheme(PrimaryColor: Color) = darkColorScheme(
-        primary = PrimaryColor,
-        onPrimary = adjustLightness(PrimaryColor, DarkOnPrimaryLightness),
-        primaryContainer = PrimaryColor,
-        onPrimaryContainer = LightContrastColor,
-        secondary = PrimaryColor,
-        onSecondary = adjustLightness(PrimaryColor, DarkOnSecondaryLightness),
-        secondaryContainer = PrimaryColor,
-        onSecondaryContainer = LightContrastColor,
-        tertiary = PrimaryColor,
-        onTertiary = adjustLightness(PrimaryColor, DarkOnTertiaryLightness),
-        tertiaryContainer = PrimaryColor,
-        onTertiaryContainer = LightContrastColor,
-        background = BlackContrastColor,
-        onBackground = LightContrastColor,
-        surface = blendColors(BlackContrastColor, PrimaryColor, BlackSurfaceBlendRatio),
-        onSurface = LightContrastColor,
-        surfaceVariant = blendColors(
-            BlackContrastColor,
-            PrimaryColor,
-            BlackSurfaceVariantBlendRatio
-        ),
-        onSurfaceVariant = LightContrastColor,
-    )
+    fun createDarkColorScheme(baseColor: Color): ColorScheme {
+        val primaryColor = ensureSafeLuminance(baseColor, isDark = true)
+        return darkColorScheme(
+            primary = primaryColor,
+            onPrimary = adjustLightness(primaryColor, DarkOnPrimaryLightness),
+            primaryContainer = primaryColor,
+            onPrimaryContainer = LightContrastColor,
+            secondary = primaryColor,
+            onSecondary = adjustLightness(primaryColor, DarkOnSecondaryLightness),
+            secondaryContainer = primaryColor,
+            onSecondaryContainer = LightContrastColor,
+            tertiary = primaryColor,
+            onTertiary = adjustLightness(primaryColor, DarkOnTertiaryLightness),
+            tertiaryContainer = primaryColor,
+            onTertiaryContainer = LightContrastColor,
+            background = blendColors(DarkBackgroundColor, primaryColor, BackgroundBlendRatio),
+            onBackground = LightContrastColor,
+            surface = blendColors(DarkSurfaceColor, primaryColor, SurfaceBlendRatio),
+            onSurface = LightContrastColor,
+            surfaceVariant = blendColors(
+                DarkSurfaceVariantColor,
+                primaryColor,
+                SurfaceVariantBlendRatio
+            ),
+            onSurfaceVariant = LightContrastColor,
+        )
+    }
+
+    fun createBlackColorScheme(baseColor: Color): ColorScheme {
+        val primaryColor = ensureSafeLuminance(baseColor, isDark = true)
+        return darkColorScheme(
+            primary = primaryColor,
+            onPrimary = adjustLightness(primaryColor, DarkOnPrimaryLightness),
+            primaryContainer = primaryColor,
+            onPrimaryContainer = LightContrastColor,
+            secondary = primaryColor,
+            onSecondary = adjustLightness(primaryColor, DarkOnSecondaryLightness),
+            secondaryContainer = primaryColor,
+            onSecondaryContainer = LightContrastColor,
+            tertiary = primaryColor,
+            onTertiary = adjustLightness(primaryColor, DarkOnTertiaryLightness),
+            tertiaryContainer = primaryColor,
+            onTertiaryContainer = LightContrastColor,
+            background = BlackContrastColor,
+            onBackground = LightContrastColor,
+            surface = blendColors(BlackContrastColor, primaryColor, BlackSurfaceBlendRatio),
+            onSurface = LightContrastColor,
+            surfaceVariant = blendColors(
+                BlackContrastColor,
+                primaryColor,
+                BlackSurfaceVariantBlendRatio
+            ),
+            onSurfaceVariant = LightContrastColor,
+        )
+    }
 
     fun toBlackColorScheme(colorScheme: ColorScheme) = colorScheme.copy(
         primaryContainer = convertDarkToBlack(colorScheme.primaryContainer),
