@@ -27,7 +27,7 @@
 #include "wavpackfile.h"
 #include "xmfile.h"
 #include "TagLibHelper.h"
-#include "android/log_macros.h"
+#include <android/log.h>
 
 using namespace TagLib;
 

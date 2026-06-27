@@ -518,7 +518,12 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
     }
 
     private fun attachGrooveListener() {
-        symphony.groove.coroutineScope.launch {
+        // CRITICAL: launch on Dispatchers.Main so that RadioPlayer() constructs
+        // ExoPlayer with the Main Looper. Dispatchers.Default (the groove scope's
+        // dispatcher) has no Looper → ExoPlayer.Builder.build() throws
+        // IllegalStateException that is silently caught in play(), leaving the
+        // player null and the app in a frozen/stale state after queue restore.
+        symphony.groove.coroutineScope.launch(Dispatchers.Main) {
             symphony.groove.readyDeferred.await()
             restorePreviousQueue()
         }
@@ -573,6 +578,17 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
 
     override fun onSymphonyReady() {
         ready()
+    }
+
+    override fun onSymphonyActivityResume() {
+        // The activity is back on screen. If a player is active, force-sync the
+        // Observatory StateFlows and rebuild the MediaSession / notification so
+        // the UI never shows a stale song or play-state after returning from bg.
+        if (!hasPlayer) return
+        symphony.groove.coroutineScope.launch(Dispatchers.Main) {
+            observatory.syncAll()
+            session.forceUpdate()
+        }
     }
 
     override fun onSymphonyDestroy() {

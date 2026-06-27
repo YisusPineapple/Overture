@@ -1,6 +1,6 @@
 #include <jni.h>
 #include <string>
-#include "android/log_macros.h"
+#include <android/log.h>
 #include "tfile.h"
 #include "tfilestream.h"
 #include "tpropertymap.h"

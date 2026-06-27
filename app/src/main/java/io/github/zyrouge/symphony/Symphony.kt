@@ -23,6 +23,7 @@ class Symphony(application: Application) : AndroidViewModel(application), Sympho
         fun onSymphonyReady() {}
         fun onSymphonyDestroy() {}
         fun onSymphonyActivityReady() {}
+        fun onSymphonyActivityResume() {}
         fun onSymphonyActivityPause() {}
         fun onSymphonyActivityDestroy() {}
     }
@@ -60,6 +61,10 @@ class Symphony(application: Application) : AndroidViewModel(application), Sympho
 
     internal fun emitActivityPause() {
         notifyHooks { onSymphonyActivityPause() }
+    }
+
+    internal fun emitActivityResume() {
+        notifyHooks { onSymphonyActivityResume() }
     }
 
     internal fun emitActivityDestroy() {

@@ -55,6 +55,13 @@ class MainActivity : ComponentActivity() {
         gSymphony?.emitActivityPause()
     }
 
+    override fun onResume() {
+        super.onResume()
+        // Trigger a full state re-sync so the UI and notification recover
+        // correctly after the activity returns from background.
+        gSymphony?.emitActivityResume()
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         gSymphony?.emitActivityDestroy()

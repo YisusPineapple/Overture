@@ -225,6 +225,10 @@ class RadioSession(val symphony: Symphony) {
         }
     }
 
+    // Called by Radio.onSymphonyActivityResume() to rebuild the notification
+    // and MediaSession metadata after the activity returns from background.
+    internal fun forceUpdate() = update()
+
     private suspend fun updateAsync() {
         val song = symphony.radio.queue.currentSongId
             ?.let { symphony.groove.song.get(it) } ?: return

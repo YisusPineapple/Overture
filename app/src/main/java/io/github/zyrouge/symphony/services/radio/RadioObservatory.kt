@@ -107,6 +107,21 @@ class RadioObservatory(private val symphony: Symphony) {
         }
     }
     
+    fun syncAll() {
+        // Called on activity resume to guarantee every StateFlow reflects
+        // the real Radio state after returning from background.
+        emitIsPlaying()
+        emitPlaybackPosition()
+        emitQueueIndex()
+        emitQueue()
+        emitLoopMode()
+        emitShuffleMode()
+        emitSleepTimer()
+        emitSpeed()
+        emitPitch()
+        emitPauseOnCurrentSongEnd()
+    }
+
     fun setDominantColor(color: Int?) {
         _dominantColor.update { color }
     }
