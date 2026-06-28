@@ -45,7 +45,17 @@ class AudioMetadataParser private constructor() {
             title = tags["TITLE"]?.firstOrNull(),
             album = tags["ALBUM"]?.firstOrNull(),
             artists = tags["ARTIST"]?.toSet() ?: emptySet(),
-            albumArtists = tags["ALBUMARTIST"]?.toSet() ?: emptySet(),
+            // ALBUMARTIST key varies by tagger:
+            //   "ALBUMARTIST"  — Vorbis Comment standard, MusicBrainz Picard, Mp3tag
+            //   "ALBUM ARTIST" — Windows Media Player, iTunes (space variant)
+            //   "ALBUM_ARTIST" — underscore variant used by some encoders
+            // TagLib returns the raw Vorbis Comment key without normalization in most
+            // builds, so we probe all three rather than relying on a canonical form.
+            albumArtists = (
+                tags["ALBUMARTIST"]
+                    ?: tags["ALBUM ARTIST"]
+                    ?: tags["ALBUM_ARTIST"]
+            )?.toSet() ?: emptySet(),
             composers = tags["COMPOSER"]?.toSet() ?: emptySet(),
             genres = tags["GENRE"]?.toSet() ?: emptySet(),
             discNumber = discNumber,
@@ -53,7 +63,9 @@ class AudioMetadataParser private constructor() {
             trackNumber = trackNumber,
             trackTotal = trackTotal ?: tags["TRACKTOTAL"]?.firstOrNull()?.toIntOrNull(),
             date = tags["DATE"]?.firstOrNull()?.let { parseDate(it) },
-            lyrics = tags["LYRICS"]?.firstOrNull(),
+            // "LYRICS" is the Vorbis Comment standard. "UNSYNCEDLYRICS" is written
+            // by Mp3tag, foobar2000, and several Android taggers for plain-text lyrics.
+            lyrics = (tags["LYRICS"] ?: tags["UNSYNCEDLYRICS"])?.firstOrNull(),
             encoding = tags["ENCODING"]?.firstOrNull(),
             bitrate = audioProperties["BITRATE"],
             lengthInSeconds = audioProperties["LENGTH_SECONDS"],

@@ -326,13 +326,24 @@ data class Song(
         } ?: emptySet()
 
         fun parseMultiValue(values: Set<String>, regex: Regex): Set<String> {
+            // When the native parser (Metaphony / TagLib) already returned multiple
+            // separate values, the underlying format (FLAC Vorbis Comments, Opus,
+            // ID3v2.4 multi-frame) already performed the separation. Trust it and
+            // only trim whitespace. Applying the separator regex here would destroy
+            // artist names that legitimately contain separator characters:
+            //   AC/DC  →  split on "/" →  {"AC", "DC"}   ← WRONG
+            //   Tyler, the Creator  →  split on ","  →  {"Tyler", " the Creator"}  ← WRONG
+            if (values.size > 1) {
+                return values.mapNotNullTo(mutableSetOf()) { it.trim().ifEmpty { null } }
+            }
+            // Single value: may be a concatenated string ("Artist A; Artist B")
+            // stored by older taggers or returned by MediaMetadataRetriever.
+            // Apply the separator regex to split it into individual tokens.
             val result = mutableSetOf<String>()
             for (x in values) {
                 for (y in x.trim().split(regex)) {
                     val trimmed = y.trim()
-                    if (trimmed.isEmpty()) {
-                        continue
-                    }
+                    if (trimmed.isEmpty()) continue
                     result.add(trimmed)
                 }
             }
