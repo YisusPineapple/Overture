@@ -17,6 +17,7 @@ import io.github.zyrouge.symphony.utils.withCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentHashMap
 
 class SongRepository(private val symphony: Symphony) {
@@ -62,7 +63,6 @@ class SongRepository(private val symphony: Symphony) {
     }
 
     internal fun onSong(song: Song) {
-        // Overture: Deduplicate memory repository when loading from cache and disk simultaneously
         if (cache.containsKey(song.id)) return
         cache[song.id] = song
         pathCache[song.path] = song.id
@@ -149,5 +149,15 @@ class SongRepository(private val symphony: Symphony) {
             Logger.error("LyricsRepository", "fetch lyrics failed", err)
         }
         return null
+    }
+
+    fun updateLyricsOffset(songId: String, offset: Long) {
+        val song = cache[songId] ?: return
+        val updated = song.copy(lyricsOffset = offset)
+        cache[songId] = updated
+        emitIds()
+        symphony.groove.coroutineScope.launch {
+            symphony.database.songCache.update(updated)
+        }
     }
 }

@@ -16,7 +16,7 @@ import io.github.zyrouge.symphony.utils.RoomConvertors
 
 @Database(
     entities = [Song::class],
-    version = 3,
+    version = 4,
     autoMigrations = [AutoMigration(1, 2, CacheDatabase.Migration1To2::class)]
 )
 @TypeConverters(RoomConvertors::class)
@@ -30,13 +30,23 @@ abstract class CacheDatabase : RoomDatabase() {
             }
         }
 
+        // Adds per-song lyrics sync offset. NOT NULL DEFAULT 0 so SQLite backfills
+        // existing rows automatically — no data loss, no explicit UPDATE required.
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE songs ADD COLUMN lyricsOffset INTEGER NOT NULL DEFAULT 0"
+                )
+            }
+        }
+
         fun create(symphony: Symphony) = Room
             .databaseBuilder(
                 symphony.applicationContext,
                 CacheDatabase::class.java,
                 "cache"
             )
-            .addMigrations(MIGRATION_2_3)
+            .addMigrations(MIGRATION_2_3, MIGRATION_3_4)
             .build()
     }
 

@@ -6,6 +6,7 @@ import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
 import androidx.compose.runtime.Immutable
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import io.github.zyrouge.symphony.Symphony
@@ -47,6 +48,12 @@ data class Song(
     val coverFile: String?,
     val uri: Uri,
     val path: String,
+    // Per-song lyrics sync offset in milliseconds. Stored in Room (migration 3→4).
+    // Applied on top of the global Settings.lyricsSyncOffset. Defaults to 0
+    // so existing rows (populated by the ALTER TABLE DEFAULT 0 migration) behave
+    // identically to before the field was added.
+    @ColumnInfo(defaultValue = "0")
+    val lyricsOffset: Long = 0L,
 ) {
     data class ParseOptions(
         val symphony: Symphony,
@@ -130,48 +137,36 @@ data class Song(
             val id = symphony.groove.song.idGenerator.next()
             
             var coverFile = metadata.pictures.firstOrNull()?.let {
-                val quality = symphony.settings.artworkQuality.value
+                val extension = when (it.mimeType) {
+                    "image/jpg", "image/jpeg" -> "jpg"
+                    "image/png" -> "png"
+                    else -> null
+                }
+                if (extension == null) {
+                    return@let null
+                }
                 
-                // Overture: If lossless, save raw bytes with correct extension
+                val quality = symphony.settings.artworkQuality.value
+                val name = "$id.$extension"
+                
                 if (quality.maxSide == null) {
-                    val extension = when (it.mimeType) {
-                        "image/jpg", "image/jpeg" -> "jpg"
-                        "image/png" -> "png"
-                        "image/webp" -> "webp"
-                        else -> "jpg"
-                    }
-                    val name = "$id.$extension"
                     symphony.database.artworkCache.get(name).writeBytes(it.data)
                     return@let name
                 }
                 
-                // Overture: WebP Compression & OOM Prevention
-                val name = "$id.webp"
+                // Overture: OOM Prevention using inSampleSize
                 val boundsOptions = BitmapFactory.Options().apply { inJustDecodeBounds = true }
                 BitmapFactory.decodeByteArray(it.data, 0, it.data.size, boundsOptions)
                 val sampleSize = ImagePreserver.calculateInSampleSize(boundsOptions, quality.maxSide, quality.maxSide)
                 
                 val decodeOptions = BitmapFactory.Options().apply { inSampleSize = sampleSize }
-                val bitmap = BitmapFactory.decodeByteArray(it.data, 0, it.data.size, decodeOptions) ?: return@let null
+                val bitmap = BitmapFactory.decodeByteArray(it.data, 0, it.data.size, decodeOptions)
                 
-                val compressFormat = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    Bitmap.CompressFormat.WEBP_LOSSY
-                } else {
-                    @Suppress("DEPRECATION")
-                    Bitmap.CompressFormat.WEBP
-                }
-                
-                val resizedBitmap = ImagePreserver.resize(bitmap, quality)
                 FileOutputStream(symphony.database.artworkCache.get(name)).use { writer ->
-                    resizedBitmap.compress(compressFormat, 80, writer)
+                    ImagePreserver
+                        .resize(bitmap, quality)
+                        .compress(Bitmap.CompressFormat.JPEG, 100, writer)
                 }
-                
-                // Free memory immediately
-                if (resizedBitmap != bitmap) {
-                    resizedBitmap.recycle()
-                }
-                bitmap.recycle()
-                
                 name
             }
 
@@ -181,14 +176,8 @@ data class Song(
                     retriever.setDataSource(symphony.applicationContext, file.uri)
                     coverFile = retriever.embeddedPicture?.let {
                         val quality = symphony.settings.artworkQuality.value
+                        val name = "$id.jpg"
                         
-                        if (quality.maxSide == null) {
-                            val name = "$id.jpg"
-                            symphony.database.artworkCache.get(name).writeBytes(it)
-                            return@let name
-                        }
-
-                        val name = "$id.webp"
                         val boundsOptions = BitmapFactory.Options().apply { inJustDecodeBounds = true }
                         BitmapFactory.decodeByteArray(it, 0, it.size, boundsOptions)
                         val sampleSize = quality.maxSide?.let { side -> 
@@ -196,25 +185,13 @@ data class Song(
                         } ?: 1
                         
                         val decodeOptions = BitmapFactory.Options().apply { inSampleSize = sampleSize }
-                        val bitmap = BitmapFactory.decodeByteArray(it, 0, it.size, decodeOptions) ?: return@let null
+                        val bitmap = BitmapFactory.decodeByteArray(it, 0, it.size, decodeOptions)
                         
-                        val compressFormat = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                            Bitmap.CompressFormat.WEBP_LOSSY
-                        } else {
-                            @Suppress("DEPRECATION")
-                            Bitmap.CompressFormat.WEBP
-                        }
-                        
-                        val resizedBitmap = ImagePreserver.resize(bitmap, quality)
                         FileOutputStream(symphony.database.artworkCache.get(name)).use { writer ->
-                            resizedBitmap.compress(compressFormat, 80, writer)
+                            ImagePreserver
+                                .resize(bitmap, quality)
+                                .compress(Bitmap.CompressFormat.JPEG, 100, writer)
                         }
-                        
-                        if (resizedBitmap != bitmap) {
-                            resizedBitmap.recycle()
-                        }
-                        bitmap.recycle()
-                        
                         name
                     }
                 } catch (_: Exception) {} finally {
@@ -264,14 +241,8 @@ data class Song(
             val id = symphony.groove.song.idGenerator.next() + ".mr"
             val coverFile = retriever.embeddedPicture?.let {
                 val quality = symphony.settings.artworkQuality.value
+                val name = "$id.jpg"
                 
-                if (quality.maxSide == null) {
-                    val name = "$id.jpg"
-                    symphony.database.artworkCache.get(name).writeBytes(it)
-                    return@let name
-                }
-
-                val name = "$id.webp"
                 val boundsOptions = BitmapFactory.Options().apply { inJustDecodeBounds = true }
                 BitmapFactory.decodeByteArray(it, 0, it.size, boundsOptions)
                 val sampleSize = quality.maxSide?.let { side -> 
@@ -279,25 +250,13 @@ data class Song(
                 } ?: 1
                 
                 val decodeOptions = BitmapFactory.Options().apply { inSampleSize = sampleSize }
-                val bitmap = BitmapFactory.decodeByteArray(it, 0, it.size, decodeOptions) ?: return@let null
+                val bitmap = BitmapFactory.decodeByteArray(it, 0, it.size, decodeOptions)
                 
-                val compressFormat = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    Bitmap.CompressFormat.WEBP_LOSSY
-                } else {
-                    @Suppress("DEPRECATION")
-                    Bitmap.CompressFormat.WEBP
-                }
-                
-                val resizedBitmap = ImagePreserver.resize(bitmap, quality)
                 FileOutputStream(symphony.database.artworkCache.get(name)).use { writer ->
-                    resizedBitmap.compress(compressFormat, 80, writer)
+                    ImagePreserver
+                        .resize(bitmap, quality)
+                        .compress(Bitmap.CompressFormat.JPEG, 100, writer)
                 }
-                
-                if (resizedBitmap != bitmap) {
-                    resizedBitmap.recycle()
-                }
-                bitmap.recycle()
-                
                 name
             }
             val title = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE)

@@ -41,10 +41,12 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -66,10 +68,13 @@ import io.github.zyrouge.symphony.services.LyricsAnimationEngine
 import io.github.zyrouge.symphony.ui.helpers.TransitionDurations
 import io.github.zyrouge.symphony.ui.helpers.ViewContext
 import io.github.zyrouge.symphony.utils.TimedContent
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlin.math.max
+
+// Duration in ms during which the auto-scroll loop ignores position updates
+// after the user taps a line to seek. Covers ExoPlayer's typical seek latency
+// (~50–200ms) with comfortable margin so the UI never flickers back.
+private const val SEEK_DEBOUNCE_MS = 500L
 
 data class TimedContentTextStyle(
     val highlighted: TextStyle,
@@ -100,6 +105,9 @@ fun TimedContentText(
     content: TimedContent,
     padding: PaddingValues,
     style: TimedContentTextStyle,
+    // Per-song offset in ms (from Song.lyricsOffset). Combined with the global
+    // Settings.lyricsSyncOffset to produce the effective playback offset.
+    songOffset: Long = 0L,
     onSeek: (Int) -> Unit,
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -114,14 +122,27 @@ fun TimedContentText(
     var activeIndex by remember { mutableIntStateOf(-1) }
 
     val playbackPosition by context.symphony.radio.observatory.playbackPosition.collectAsState()
-    
+
     // Overture: Lyrics Settings
     val alignment by context.symphony.settings.lyricsAlignment.flow.collectAsState()
     val engine by context.symphony.settings.lyricsAnimationEngine.flow.collectAsState()
     val unfocusedOpacity by context.symphony.settings.lyricsUnfocusedOpacity.flow.collectAsState()
     val syncOffset by context.symphony.settings.lyricsSyncOffset.flow.collectAsState()
 
-    val currentPosition = playbackPosition.played + syncOffset
+    // Effective offset = per-song offset (from Room) + global offset (from Settings).
+    // syncOffset is Compose State (collectAsState), so changes trigger recomposition.
+    // songOffset is a plain Long parameter; its changes trigger recomposition via
+    // the parent LyricsText (which includes it in AnimatedContent's targetState).
+    val effectiveOffset = songOffset + syncOffset
+
+    // Used for word-level highlight at composition time — correct because
+    // playbackPosition and effectiveOffset are both reactive Compose values.
+    val currentPosition = playbackPosition.played + effectiveOffset
+
+    // Timestamp set when the user taps a line to seek. The auto-scroll loop
+    // ignores position updates for SEEK_DEBOUNCE_MS after a tap to prevent the
+    // brief ExoPlayer seek latency from resetting activeIndex back to the old line.
+    var seekCooldownUntil by remember { mutableLongStateOf(0L) }
 
     val horizontalAlignment = when (alignment) {
         LyricsAlignment.Left -> Alignment.Start
@@ -146,11 +167,18 @@ fun TimedContentText(
         tween(300)
     }
 
-    LaunchedEffect(content) {
-        while (isActive) {
-            val pos = (context.symphony.radio.currentPlaybackPosition?.played ?: 0L) + syncOffset
-            if (content.isSynced) {
-                val nActiveIndex = content.lines.indexOfLast { it.time <= pos }
+    LaunchedEffect(content, songOffset) {
+        // snapshotFlow tracks all Compose State reads in its lambda and emits
+        // on every change — position updates at ~100ms cadence, plus immediate
+        // reaction to syncOffset changes. No manual poll interval needed.
+        snapshotFlow { playbackPosition.played + syncOffset + songOffset }
+            .collect { adjustedPos ->
+                if (!content.isSynced) return@collect
+                // Skip updates for 500ms after a manual tap-to-seek so ExoPlayer's
+                // seek latency cannot reset activeIndex back to the old line.
+                if (System.currentTimeMillis() < seekCooldownUntil) return@collect
+
+                val nActiveIndex = content.lines.indexOfLast { it.time <= adjustedPos }
                 if (nActiveIndex != -1 && activeIndex != nActiveIndex) {
                     activeIndex = nActiveIndex
                     val isLineVisible = activeIndex in visibleRange.first..visibleRange.second
@@ -160,8 +188,6 @@ fun TimedContentText(
                     }
                 }
             }
-            delay(50) 
-        }
     }
 
     LazyColumn(
@@ -220,9 +246,10 @@ fun TimedContentText(
                 }
                 .pointerInput(Unit) {
                     detectTapGestures { _ ->
-                        if (!content.isSynced) {
-                            return@detectTapGestures
-                        }
+                        if (!content.isSynced) return@detectTapGestures
+                        // Arm the cooldown BEFORE calling onSeek so the LaunchedEffect
+                        // collector sees it immediately on the next emission.
+                        seekCooldownUntil = System.currentTimeMillis() + SEEK_DEBOUNCE_MS
                         onSeek(i)
                         activeIndex = i
                         coroutineScope.launch {
