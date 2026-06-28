@@ -344,7 +344,7 @@ fun SearchView(context: ViewContext, route: SearchViewRoute) {
 
                             else -> {
                                 LazyColumn(
-                                    contentPadding = PaddingValues(bottom = 140.dp)
+                                    contentPadding = PaddingValues(bottom = 180.dp) // Overture: Increased padding for mini-player
                                 ) {
                                     if (hasSongs) {
                                         item { SideHeading(context, Groove.Kind.SONG) }

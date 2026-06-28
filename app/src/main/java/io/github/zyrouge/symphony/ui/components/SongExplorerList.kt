@@ -196,6 +196,7 @@ fun SongExplorerList(
 
                     LazyColumn(
                         state = lazyListState,
+                        contentPadding = PaddingValues(bottom = 180.dp), // Overture: Increased padding for mini-player
                         modifier = Modifier.drawScrollBar(lazyListState),
                     ) {
                         items(

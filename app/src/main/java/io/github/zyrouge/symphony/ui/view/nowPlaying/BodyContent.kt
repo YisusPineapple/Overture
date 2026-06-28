@@ -28,8 +28,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.FastRewind
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
@@ -38,6 +36,7 @@ import androidx.compose.material.icons.filled.RepeatOne
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
+import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
@@ -60,9 +59,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.yisuspineapple.overture.R
 import io.github.zyrouge.symphony.services.radio.RadioQueue
 import io.github.zyrouge.symphony.ui.components.SongDropdownMenu
 import io.github.zyrouge.symphony.ui.helpers.FadeTransition
@@ -131,13 +132,40 @@ fun NowPlayingBodyContent(context: ViewContext, data: NowPlayingData) {
                             }
                         }
                         if (data.showSongAdditionalInfo) {
-                            targetStateSong.toSamplingInfoString(context.symphony)?.let {
-                                Text(
-                                    it,
-                                    style = MaterialTheme.typography.labelSmall
-                                        .copy(color = textColor.copy(alpha = 0.6f), shadow = textShadow),
-                                    modifier = Modifier.padding(top = 4.dp),
-                                )
+                            Row(
+                                modifier = Modifier.padding(top = 8.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                targetStateSong.toSamplingInfoString(context.symphony)?.let {
+                                    Box(
+                                        modifier = Modifier
+                                            .background(textColor.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
+                                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                                    ) {
+                                        Text(
+                                            it,
+                                            style = MaterialTheme.typography.labelSmall
+                                                .copy(color = textColor, fontWeight = FontWeight.Bold, shadow = textShadow),
+                                        )
+                                    }
+                                }
+                                if (data.hasSleepTimer) {
+                                    Box(
+                                        modifier = Modifier
+                                            .background(activeColor.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
+                                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                            Icon(Icons.Outlined.Timer, null, tint = activeColor, modifier = Modifier.size(14.dp))
+                                            Text(
+                                                context.symphony.t.SleepTimer,
+                                                style = MaterialTheme.typography.labelSmall
+                                                    .copy(color = activeColor, fontWeight = FontWeight.Bold, shadow = textShadow),
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -154,15 +182,12 @@ fun NowPlayingBodyContent(context: ViewContext, data: NowPlayingData) {
                             }
                         }
                     ) {
-                        when {
-                            isFavorite -> Icon(
-                                Icons.Filled.Favorite,
-                                null,
-                                tint = activeColor,
-                            )
-
-                            else -> Icon(Icons.Filled.FavoriteBorder, null, tint = textColor)
-                        }
+                        Icon(
+                            painter = painterResource(if (isFavorite) R.drawable.ic_heart_filled else R.drawable.ic_heart),
+                            contentDescription = null,
+                            tint = if (isFavorite) activeColor else textColor,
+                            modifier = Modifier.size(28.dp)
+                        )
                     }
 
                     var showOptionsMenu by remember { mutableStateOf(false) }

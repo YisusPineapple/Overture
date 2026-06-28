@@ -132,7 +132,7 @@ fun SongList(
 
                     LazyColumn(
                         state = lazyListState,
-                        contentPadding = PaddingValues(bottom = 140.dp),
+                        contentPadding = PaddingValues(bottom = 180.dp), // Overture: Increased padding for mini-player
                         modifier = Modifier.drawScrollBar(lazyListState)
                     ) {
                         leadingContent?.invoke(this)

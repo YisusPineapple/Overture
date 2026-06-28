@@ -3,8 +3,6 @@ package io.github.zyrouge.symphony.ui.view.nowPlaying
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -15,7 +13,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import com.yisuspineapple.overture.R
 import io.github.zyrouge.symphony.ui.components.IconButtonPlaceholder
 import io.github.zyrouge.symphony.ui.components.TopAppBarMinimalTitle
 import io.github.zyrouge.symphony.ui.helpers.ViewContext
@@ -39,8 +39,8 @@ fun NowPlayingAppBar(context: ViewContext) {
                 }
             ) {
                 Icon(
-                    Icons.Filled.ExpandMore,
-                    null,
+                    painter = painterResource(id = R.drawable.material_icon_close),
+                    contentDescription = null,
                     modifier = Modifier.size(32.dp)
                 )
             }
@@ -69,8 +69,8 @@ fun NowPlayingLandscapeAppBar(context: ViewContext) {
             }
         ) {
             Icon(
-                Icons.Filled.ExpandMore,
-                null,
+                painter = painterResource(id = R.drawable.material_icon_close),
+                contentDescription = null,
                 modifier = Modifier.size(32.dp)
             )
         }
