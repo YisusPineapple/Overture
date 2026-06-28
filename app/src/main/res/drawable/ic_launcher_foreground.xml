@@ -5,35 +5,39 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- El anillo 'O' hueco -->
-    <path
-        android:pathData="M 54 26 A 28 28 0 1 0 54 82 A 28 28 0 1 0 54 26 Z"
-        android:strokeWidth="8"
-        android:strokeLineCap="round">
-        <aapt:attr name="android:strokeColor">
-            <gradient android:startX="24" android:startY="20" android:endX="86" android:endY="88" android:type="linear">
-                <item android:offset="0" android:color="#FFF7F4FF"/>
-                <item android:offset="0.45" android:color="#FFC9B7FF"/>
-                <item android:offset="1" android:color="#FF8B6CFF"/>
-            </gradient>
-        </aapt:attr>
-    </path>
-
-    <!-- El botón de Play central -->
-    <path
-        android:pathData="M 48 43.5 C 48 41.5 50.2 40.5 51.8 41.5 L 66.8 52 C 68.2 53 68.2 55 66.8 56 L 51.8 66.5 C 50.2 67.5 48 66.5 48 64.5 Z">
+    <!-- Liquid Glass Orb Background -->
+    <path android:pathData="M54,16 A38,38 0 1,1 53.9,16 Z">
         <aapt:attr name="android:fillColor">
-            <gradient android:startX="42" android:startY="34" android:endX="69" android:endY="76" android:type="linear">
-                <item android:offset="0" android:color="#FFFFFFFF"/>
-                <item android:offset="1" android:color="#FFD8C9FF"/>
+            <gradient android:startX="54" android:startY="16" android:endX="54" android:endY="92" android:type="linear">
+                <item android:offset="0" android:color="#40D946EF"/>
+                <item android:offset="1" android:color="#10545DFF"/>
             </gradient>
         </aapt:attr>
     </path>
 
-    <!-- Acento sutil M3E -->
-    <path
-        android:pathData="M 42 48 C 45 44 51 42 57 43"
-        android:strokeWidth="2.5"
-        android:strokeLineCap="round"
-        android:strokeColor="#40FFFFFF" />
+    <!-- The "O" Wave (Overture Core) -->
+    <path android:pathData="M 54 32 C 68 32, 76 42, 76 54 C 76 66, 68 76, 54 76 C 40 76, 32 66, 32 54 C 32 42, 40 32, 54 32 Z"
+        android:strokeWidth="4" android:strokeLineCap="round">
+        <aapt:attr name="android:strokeColor">
+            <gradient android:startX="32" android:startY="32" android:endX="76" android:endY="76" android:type="linear">
+                <item android:offset="0" android:color="#D946EF"/>
+                <item android:offset="0.5" android:color="#AD2A5A"/>
+                <item android:offset="1" android:color="#545DFF"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Play Button -->
+    <path android:pathData="M 48 44 L 66 54 L 48 64 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:startX="48" android:startY="44" android:endX="66" android:endY="64" android:type="linear">
+                <item android:offset="0" android:color="#FFFFFF"/>
+                <item android:offset="1" android:color="#E0E0E0"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+    
+    <!-- Specular Highlight -->
+    <path android:pathData="M 54 32 C 40 32, 32 42, 32 54 C 32 58, 34 62, 38 65 C 36 55, 40 42, 54 36 C 62 33, 70 34, 74 38 C 72 34, 64 32, 54 32 Z"
+        android:fillColor="#40FFFFFF"/>
 </vector>
