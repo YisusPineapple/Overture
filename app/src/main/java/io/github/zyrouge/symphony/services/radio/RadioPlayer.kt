@@ -12,6 +12,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import io.github.zyrouge.symphony.Symphony
+import io.github.zyrouge.symphony.services.CrossfadeMode
 import io.github.zyrouge.symphony.services.groove.Song
 import io.github.zyrouge.symphony.utils.Logger
 import kotlinx.coroutines.Dispatchers
@@ -105,7 +106,10 @@ class RadioPlayer(val symphony: Symphony, val song: Song) {
             .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
 
         exoPlayer = ExoPlayer.Builder(symphony.applicationContext, renderersFactory).build().apply {
-            skipSilenceEnabled = false 
+            // Read from settings so the user can toggle this in Preferences.
+            // Hardcoding false was the previous state; false remains the safe default
+            // because aggressive silence trimming was cutting organic fade-outs.
+            skipSilenceEnabled = symphony.settings.skipSilenceEnabled.value
             
             val audioAttributes = AudioAttributes.Builder()
                 .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
@@ -313,15 +317,43 @@ class RadioPlayer(val symphony: Symphony, val song: Song) {
     private fun emitPlaybackPosition() {
         playbackPosition?.let { pos ->
             onPlaybackPosition?.invoke(pos)
-            
-            if (!crossfadeTriggered && fadePlayback) {
-                val fadeDurationMs = (symphony.settings.fadePlaybackDuration.value * 1000).toLong()
-                if (pos.total > 0 && pos.played >= pos.total - fadeDurationMs) {
+
+            if (!crossfadeTriggered) {
+                val fadeDurationMs = computeEffectiveFadeDurationMs(pos.total)
+                if (fadeDurationMs > 0L && pos.total > 0L && pos.played >= pos.total - fadeDurationMs) {
                     crossfadeTriggered = true
                     symphony.groove.coroutineScope.launch(Dispatchers.Main) {
                         onCrossfadeTrigger?.invoke()
                     }
                 }
+            }
+        }
+    }
+
+    /**
+     * Returns the crossfade trigger window in milliseconds for the current song.
+     *
+     * - [CrossfadeMode.Disabled]: always 0  → crossfade never fires.
+     * - [CrossfadeMode.Manual]:   respects the user's [Settings.fadePlaybackDuration] slider.
+     * - [CrossfadeMode.Auto]:     length-based heuristic — no slider needed:
+     *     < 30 s   →  0 ms  (too short; skip entirely)
+     *     < 2 min  →  1.5 s
+     *     < 5 min  →  3 s
+     *     ≥ 5 min  →  5 s
+     *
+     * In all cases, if [Settings.fadePlayback] is false the function returns 0
+     * so that disabling the master fade toggle still works as expected.
+     */
+    private fun computeEffectiveFadeDurationMs(totalMs: Long): Long {
+        if (!fadePlayback) return 0L
+        return when (symphony.settings.crossfadeMode.value) {
+            CrossfadeMode.Disabled -> 0L
+            CrossfadeMode.Manual   -> (symphony.settings.fadePlaybackDuration.value * 1000L).toLong()
+            CrossfadeMode.Auto     -> when {
+                totalMs < 30_000L  -> 0L
+                totalMs < 120_000L -> 1_500L
+                totalMs < 300_000L -> 3_000L
+                else               -> 5_000L
             }
         }
     }

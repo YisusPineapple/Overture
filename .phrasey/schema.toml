@@ -218,9 +218,6 @@ name = "SuggestedArtists"
 [[keys]]
 name = "RecentlyAddedSongs"
 
-# [[keys]]
-# name = "SponsorViaGithub"
-
 [[keys]]
 name = "ClearSongCache"
 
@@ -395,9 +392,6 @@ name = "PersistUntilQueueEnd"
 [[keys]]
 name = "NoLyrics"
 
-# [[keys]]
-# name = "SponsorViaPatreon"
-
 [[keys]]
 name = "FDroid"
 
@@ -440,9 +434,6 @@ name = "Disabled"
 [[keys]]
 name = "ShowUpdateToast"
 
-# [[keys]]
-# name = "SponsorViaKoFi"
-
 [[keys]]
 name = "PlaylistStoreLocation"
 
@@ -463,10 +454,6 @@ parameters = ["x"]
 [[keys]]
 name = "XSongs"
 parameters = ["x"]
-
-# [[keys]]
-# name = "UnknownAlbumId"
-# parameters = ["id"]
 
 [[keys]]
 name = "XArtists"
@@ -551,9 +538,6 @@ name = "Rescan"
 
 [[keys]]
 name = "Updates"
-
-# [[keys]]
-# name = "ConsiderDonating"
 
 [[keys]]
 name = "Help"
@@ -774,3 +758,18 @@ name = "LiquidGlass"
 
 [[keys]]
 name = "Solid"
+
+[[keys]]
+name = "SkipSilence"
+
+[[keys]]
+name = "CrossfadeMode"
+
+[[keys]]
+name = "CrossfadeModeDisabled"
+
+[[keys]]
+name = "CrossfadeModeManual"
+
+[[keys]]
+name = "CrossfadeModeAuto"

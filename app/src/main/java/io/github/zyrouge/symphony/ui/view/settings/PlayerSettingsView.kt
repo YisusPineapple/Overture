@@ -1,5 +1,6 @@
 package io.github.zyrouge.symphony.ui.view.settings
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,6 +16,7 @@ import androidx.compose.material.icons.filled.FastRewind
 import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.Headset
 import androidx.compose.material.icons.filled.HeadsetOff
+import androidx.compose.material.icons.filled.Hearing
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -29,9 +31,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import io.github.zyrouge.symphony.services.CrossfadeMode
 import io.github.zyrouge.symphony.ui.components.IconButtonPlaceholder
 import io.github.zyrouge.symphony.ui.components.TopAppBarMinimalTitle
 import io.github.zyrouge.symphony.ui.components.settings.ConsiderContributingTile
+import io.github.zyrouge.symphony.ui.components.settings.SettingsOptionTile
 import io.github.zyrouge.symphony.ui.components.settings.SettingsSideHeading
 import io.github.zyrouge.symphony.ui.components.settings.SettingsSliderTile
 import io.github.zyrouge.symphony.ui.components.settings.SettingsSwitchTile
@@ -48,6 +52,8 @@ fun PlayerSettingsView(context: ViewContext) {
     val scrollState = rememberScrollState()
     val fadePlayback by context.symphony.settings.fadePlayback.flow.collectAsState()
     val fadePlaybackDuration by context.symphony.settings.fadePlaybackDuration.flow.collectAsState()
+    val crossfadeMode by context.symphony.settings.crossfadeMode.flow.collectAsState()
+    val skipSilenceEnabled by context.symphony.settings.skipSilenceEnabled.flow.collectAsState()
     val requireAudioFocus by context.symphony.settings.requireAudioFocus.flow.collectAsState()
     val ignoreAudioFocusLoss by context.symphony.settings.ignoreAudioFocusLoss.flow.collectAsState()
     val playOnHeadphonesConnect by context.symphony.settings.playOnHeadphonesConnect.flow.collectAsState()
@@ -94,6 +100,8 @@ fun PlayerSettingsView(context: ViewContext) {
 
                     ConsiderContributingTile(context)
                     SettingsSideHeading(context.symphony.t.Player)
+                    
+                    // Overture: Audio Engine Settings
                     SettingsSwitchTile(
                         icon = {
                             Icon(Icons.Filled.GraphicEq, null)
@@ -106,31 +114,70 @@ fun PlayerSettingsView(context: ViewContext) {
                             context.symphony.settings.fadePlayback.setValue(value)
                         }
                     )
+                    AnimatedVisibility(visible = fadePlayback) {
+                        Column {
+                            HorizontalDivider()
+                            SettingsOptionTile(
+                                icon = {
+                                    Icon(Icons.Filled.GraphicEq, null)
+                                },
+                                title = {
+                                    Text(context.symphony.t.CrossfadeMode)
+                                },
+                                value = crossfadeMode,
+                                values = mapOf(
+                                    CrossfadeMode.Disabled to context.symphony.t.CrossfadeModeDisabled,
+                                    CrossfadeMode.Manual to context.symphony.t.CrossfadeModeManual,
+                                    CrossfadeMode.Auto to context.symphony.t.CrossfadeModeAuto,
+                                ),
+                                onChange = { value ->
+                                    context.symphony.settings.crossfadeMode.setValue(value)
+                                }
+                            )
+                            AnimatedVisibility(visible = crossfadeMode == CrossfadeMode.Manual) {
+                                Column {
+                                    HorizontalDivider()
+                                    SettingsSliderTile(
+                                        context,
+                                        icon = {
+                                            Icon(Icons.Filled.GraphicEq, null)
+                                        },
+                                        title = {
+                                            Text(context.symphony.t.FadePlaybackInOut)
+                                        },
+                                        label = { value ->
+                                            Text(context.symphony.t.XSecs(value.toString()))
+                                        },
+                                        range = 0.5f..15f,
+                                        initialValue = fadePlaybackDuration,
+                                        onValue = { value ->
+                                            value.times(2).roundToInt().toFloat().div(2)
+                                        },
+                                        onChange = { value ->
+                                            context.symphony.settings.fadePlaybackDuration.setValue(value)
+                                        },
+                                        onReset = {
+                                            context.symphony.settings.fadePlaybackDuration.setValue(
+                                                context.symphony.settings.fadePlaybackDuration.defaultValue,
+                                            )
+                                        },
+                                    )
+                                }
+                            }
+                        }
+                    }
                     HorizontalDivider()
-                    SettingsSliderTile(
-                        context,
+                    SettingsSwitchTile(
                         icon = {
-                            Icon(Icons.Filled.GraphicEq, null)
+                            Icon(Icons.Filled.Hearing, null)
                         },
                         title = {
-                            Text(context.symphony.t.FadePlaybackInOut)
+                            Text(context.symphony.t.SkipSilence)
                         },
-                        label = { value ->
-                            Text(context.symphony.t.XSecs(value.toString()))
-                        },
-                        range = 0.5f..15f, // Overture: Increased crossfade limit to 15s
-                        initialValue = fadePlaybackDuration,
-                        onValue = { value ->
-                            value.times(2).roundToInt().toFloat().div(2)
-                        },
+                        value = skipSilenceEnabled,
                         onChange = { value ->
-                            context.symphony.settings.fadePlaybackDuration.setValue(value)
-                        },
-                        onReset = {
-                            context.symphony.settings.fadePlaybackDuration.setValue(
-                                context.symphony.settings.fadePlaybackDuration.defaultValue,
-                            )
-                        },
+                            context.symphony.settings.skipSilenceEnabled.setValue(value)
+                        }
                     )
                     HorizontalDivider()
                     SettingsSwitchTile(

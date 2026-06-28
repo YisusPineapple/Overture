@@ -30,6 +30,12 @@ enum class BottomBarAppearance { LiquidGlass, Solid }
 enum class LyricsAlignment { Left, Center, Right }
 enum class LyricsAnimationEngine { Normal, Expressive }
 
+// Controls how Overture computes the crossfade trigger window at song end.
+//   Disabled → no crossfade at all (clean cut / true gapless)
+//   Manual   → uses the fadePlaybackDuration slider (existing behaviour)
+//   Auto     → duration is computed from song length; no slider needed
+enum class CrossfadeMode { Disabled, Manual, Auto }
+
 class Settings(private val symphony: Symphony) {
     abstract class Entry<T>(val key: String) {
         private val mutableFlow by lazy {
@@ -207,6 +213,12 @@ class Settings(private val symphony: Symphony) {
     val artworkQuality = EnumEntry("artwork_quality", enumEntries<ImagePreserver.Quality>(), ImagePreserver.Quality.Medium)
     val useMetaphony = BooleanEntry("use_metaphony", true)
     val gaplessPlayback = BooleanEntry("gapless_playback", true)
+    // When true, ExoPlayer trims leading/trailing silence within tracks.
+    // Disabled by default — aggressive silence skipping cuts organic fade-outs.
+    val skipSilenceEnabled = BooleanEntry("skip_silence_enabled", false)
+    // Determines how the crossfade trigger window is calculated at song end.
+    // Default: Manual (respects fadePlaybackDuration slider, existing behaviour).
+    val crossfadeMode = EnumEntry("crossfade_mode", enumEntries<CrossfadeMode>(), CrossfadeMode.Manual)
     val caseSensitiveSorting = BooleanEntry("case_sensitive_sorting", false)
     val lyricsKeepScreenAwake = BooleanEntry("lyrics_keep_screen_awake", true)
     val enableReplayGain = BooleanEntry("enable_replay_gain", true)
