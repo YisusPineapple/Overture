@@ -1,4 +1,3 @@
-```kotlin
 package io.github.zyrouge.symphony.services.groove
 
 import android.graphics.Bitmap
