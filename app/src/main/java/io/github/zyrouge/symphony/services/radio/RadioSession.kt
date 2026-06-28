@@ -165,6 +165,9 @@ class RadioSession(val symphony: Symphony) {
             when (it) {
                 Radio.Events.Player.Ended -> cancel()
                 is Radio.Events.Player -> update()
+                // Rebuild the notification heart icon whenever Favorites change,
+                // whether the toggle came from the UI or from the notification itself.
+                Radio.Events.FavoriteChanged -> update()
                 else -> {}
             }
         }
@@ -186,7 +189,11 @@ class RadioSession(val symphony: Symphony) {
                 } else {
                     symphony.groove.playlist.favorite(songId)
                 }
-                update()
+                // update() is no longer called here explicitly. PlaylistRepository
+                // dispatches Events.FavoriteChanged after modifying the Favorites
+                // playlist, and RadioSession's subscriber calls update() from there.
+                // This unifies both directions (UI tap and notification tap) through
+                // the same code path.
             }
             ACTION_STOP -> symphony.radio.stop()
         }

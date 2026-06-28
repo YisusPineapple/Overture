@@ -37,6 +37,11 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
             object PitchChanged : QueueOption()
             object PauseOnCurrentSongEndChanged : QueueOption()
         }
+
+        // Dispatched by PlaylistRepository whenever the Favorites playlist changes.
+        // RadioSession subscribes to this to rebuild the notification heart icon
+        // without requiring a Player event to be in flight.
+        object FavoriteChanged : Events()
     }
 
     data class SleepTimer(
@@ -580,8 +585,14 @@ class Radio(private val symphony: Symphony) : Symphony.Hooks {
         ready()
     }
 
+    // Called by PlaylistRepository whenever the Favorites playlist changes so
+    // that RadioSession can rebuild the notification heart icon immediately,
+    // regardless of whether a Player event is in flight.
+    fun dispatchFavoriteChanged() {
+        onUpdate.dispatch(Events.FavoriteChanged)
+    }
+
     override fun onSymphonyActivityResume() {
-        // The activity is back on screen. If a player is active, force-sync the
         // Observatory StateFlows and rebuild the MediaSession / notification so
         // the UI never shows a stale song or play-state after returning from bg.
         if (!hasPlayer) return

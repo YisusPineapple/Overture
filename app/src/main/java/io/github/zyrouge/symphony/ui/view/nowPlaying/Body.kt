@@ -1,7 +1,11 @@
 package io.github.zyrouge.symphony.ui.view.nowPlaying
 
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -17,6 +21,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
@@ -24,10 +29,13 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import io.github.zyrouge.symphony.ui.components.swipeable
 import io.github.zyrouge.symphony.ui.helpers.ScreenOrientation
 import io.github.zyrouge.symphony.ui.helpers.ViewContext
 import io.github.zyrouge.symphony.ui.view.NowPlayingData
@@ -35,6 +43,7 @@ import io.github.zyrouge.symphony.ui.view.NowPlayingDefaults
 import io.github.zyrouge.symphony.ui.view.NowPlayingLyricsLayout
 import io.github.zyrouge.symphony.ui.view.NowPlayingStates
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
 
 internal val defaultHorizontalPadding = 20.dp
 
@@ -48,10 +57,66 @@ fun NowPlayingBody(context: ViewContext, data: NowPlayingData) {
         )
     }
 
+    val coroutineScope = rememberCoroutineScope()
+    val configuration = LocalConfiguration.current
+    val density = LocalDensity.current
+    val screenHeight = remember(configuration, density) {
+        with(density) { configuration.screenHeightDp.dp.toPx() }
+    }
+    
+    // Overture: Fluid Swipe-to-Minimize Gesture
+    val offsetY = remember { Animatable(0f) }
+
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
-            .swipeable(onSwipeDown = { context.navController.popBackStack() }) // Overture: Swipe down to minimize
+            .graphicsLayer {
+                translationY = offsetY.value
+                // M3E Depth effect: Scale down slightly as it's dragged down
+                val scale = 1f - (offsetY.value / screenHeight) * 0.05f
+                scaleX = scale
+                scaleY = scale
+            }
+            .pointerInput(Unit) {
+                detectVerticalDragGestures(
+                    onDragEnd = {
+                        coroutineScope.launch {
+                            // If dragged down more than 20% of the screen, dismiss
+                            if (offsetY.value > screenHeight * 0.2f) {
+                                offsetY.animateTo(screenHeight, tween(250))
+                                context.navController.popBackStack()
+                            } else {
+                                // Otherwise, spring back to top
+                                offsetY.animateTo(
+                                    targetValue = 0f, 
+                                    animationSpec = spring(
+                                        dampingRatio = Spring.DampingRatioLowBouncy, 
+                                        stiffness = Spring.StiffnessMedium
+                                    )
+                                )
+                            }
+                        }
+                    },
+                    onDragCancel = {
+                        coroutineScope.launch {
+                            offsetY.animateTo(
+                                targetValue = 0f, 
+                                animationSpec = spring(
+                                    dampingRatio = Spring.DampingRatioLowBouncy, 
+                                    stiffness = Spring.StiffnessMedium
+                                )
+                            )
+                        }
+                    },
+                    onVerticalDrag = { change, dragAmount ->
+                        change.consume()
+                        coroutineScope.launch {
+                            // Prevent dragging upwards past the top edge
+                            offsetY.snapTo((offsetY.value + dragAmount).coerceAtLeast(0f))
+                        }
+                    }
+                )
+            }
     ) {
         val orientation = ScreenOrientation.fromConstraints(this@BoxWithConstraints)
         

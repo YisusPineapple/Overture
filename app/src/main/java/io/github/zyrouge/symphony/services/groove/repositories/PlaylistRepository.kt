@@ -188,6 +188,11 @@ class PlaylistRepository(private val symphony: Symphony) {
             _favorites.update {
                 songIds
             }
+            // Notify RadioSession so it rebuilds the notification heart icon.
+            // This covers the App → Notification direction: calling favorite() or
+            // unfavorite() from the UI now immediately updates the notification,
+            // without requiring a Player event to be in flight.
+            symphony.radio.dispatchFavoriteChanged()
         }
         symphony.groove.coroutineScope.launch {
             symphony.database.playlists.update(updated)
