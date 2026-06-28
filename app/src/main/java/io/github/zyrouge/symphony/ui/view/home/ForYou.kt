@@ -354,7 +354,7 @@ fun ForYouView(context: ViewContext) {
                         )
                     }
                 }
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(200.dp)) // Overture: Increased padding for mini-player
             }
         }
 

@@ -171,6 +171,7 @@ fun SongTreeListContent(
 
     LazyColumn(
         state = lazyListState,
+        contentPadding = PaddingValues(bottom = 200.dp), // Overture: Padding for mini-player
         modifier = Modifier.drawScrollBar(lazyListState),
     ) {
         tree.forEach { (dirname, childSongIds) ->
