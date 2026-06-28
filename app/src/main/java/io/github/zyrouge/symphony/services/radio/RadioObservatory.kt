@@ -51,6 +51,7 @@ class RadioObservatory(private val symphony: Symphony) {
                 Radio.Events.QueueOption.SpeedChanged -> emitSpeed()
                 Radio.Events.QueueOption.PitchChanged -> emitPitch()
                 Radio.Events.QueueOption.PauseOnCurrentSongEndChanged -> emitPauseOnCurrentSongEnd()
+                Radio.Events.FavoriteChanged -> {} // Overture: Ignored here, handled by RadioSession
             }
         }
         playbackPositionUpdateSubscriber = symphony.radio.onPlaybackPositionUpdate.subscribe {
