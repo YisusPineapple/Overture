@@ -39,17 +39,17 @@ Our mission is to push the boundaries of Android UI/UX using **Material 3 Expres
 - **Karaoke Lyrics Engine:** Native support for Enhanced LRC word-level `<time>` tags, highlighting each word as it is sung with M3E spring transitions. Falls back gracefully to line-synced and static lyrics.
 - **Organic M3E Sliders:** Custom seek and volume controls built with spring physics — overshoot on press, settle on release — consistent with the tactile language of the rest of the UI.
 - **Advanced Queue Management:** Drag-to-reorder, persistent queue state across sessions, and shuffle/repeat modes that operate on the queue without mutating the source library.
-- **Absolute Privacy:** No internet permissions required for playback. No tracking. No telemetry.
+- **Absolute Privacy (SAF):** Overture uses the Android Storage Access Framework (SAF). We **do not** request broad `READ_EXTERNAL_STORAGE` permissions. You grant access only to the specific folders you choose.
+- **Zero Telemetry:** No tracking, no analytics. The `INTERNET` permission is used **exclusively** for the optional in-app GitHub update checker (which can be completely disabled in Settings).
 - **Extreme Optimization:** UI rendering isolated to the `Draw` phase to prevent battery drain and device heating.
-- **Gapless Playback & Advanced Audio:** Powered by Media3 and a custom C++ metadata decoder (Metaphony).
-- **Heuristic Recommendations:** A local, on-device engine that analyzes your listening habits and favorites to suggest albums and artists.
+- **Gapless Playback & Advanced Audio:** Powered by Media3 (ExoPlayer) and a custom C++ metadata decoder (Metaphony).
 
 ## 🛠️ Architecture & Performance
 
 Overture is built to run flawlessly even on older hardware (minSdk 24). We achieve this by:
 - Avoiding `Modifier.fillMaxWidth(ratio)` in favor of `Modifier.drawWithContent` for progress bars.
 - Using `GraphicsLayer` for hardware-accelerated translations instead of triggering layout recompositions.
-- Caching micro-bitmaps for ambient blur effects.
+- Caching micro-bitmaps for ambient blur effects using strict WebP compression and `inSampleSize` memory management.
 - Bypassing the main thread for heavy I/O and Bitmap processing.
 
 ## License
