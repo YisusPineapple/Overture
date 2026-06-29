@@ -3,12 +3,14 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+    
     <path
-        android:pathData="M 54 26 A 28 28 0 1 0 54 82 A 28 28 0 1 0 54 26 Z"
-        android:strokeWidth="8"
+        android:pathData="M 54 32 C 68 32, 76 42, 76 54 C 76 66, 68 76, 54 76 C 40 76, 32 66, 32 54 C 32 42, 40 32, 54 32 Z"
+        android:strokeWidth="6"
         android:strokeLineCap="round"
         android:strokeColor="#000000" />
+        
     <path
-        android:pathData="M 48 43.5 C 48 41.5 50.2 40.5 51.8 41.5 L 66.8 52 C 68.2 53 68.2 55 66.8 56 L 51.8 66.5 C 50.2 67.5 48 66.5 48 64.5 Z"
+        android:pathData="M 48 44 L 66 54 L 48 64 Z"
         android:fillColor="#000000" />
 </vector>

@@ -5,10 +5,10 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Liquid Glass Orb Background -->
-    <path android:pathData="M54,16 A38,38 0 1,1 53.9,16 Z">
+    <!-- Liquid Glass Orb Background (Fixed Arc & Safe Size) -->
+    <path android:pathData="M 54,20 A 34,34 0 1,1 54,88 A 34,34 0 1,1 54,20 Z">
         <aapt:attr name="android:fillColor">
-            <gradient android:startX="54" android:startY="16" android:endX="54" android:endY="92" android:type="linear">
+            <gradient android:startX="54" android:startY="20" android:endX="54" android:endY="88" android:type="linear">
                 <item android:offset="0" android:color="#40D946EF"/>
                 <item android:offset="1" android:color="#10545DFF"/>
             </gradient>

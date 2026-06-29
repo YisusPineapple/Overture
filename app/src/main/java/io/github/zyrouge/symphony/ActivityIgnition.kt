@@ -9,7 +9,6 @@ class ActivityIgnition : ViewModel() {
     val ready = readyFlow.asStateFlow()
 
     internal fun emitReady() {
-        // Overture: Thread-safe atomic update to prevent race conditions during startup
-        readyFlow.compareAndSet(expect = false, update = true)
+        readyFlow.value = true
     }
 }
