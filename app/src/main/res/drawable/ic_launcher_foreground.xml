@@ -5,8 +5,8 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Liquid Glass Orb Background (Fixed Arc & Safe Size) -->
-    <path android:pathData="M 54,20 A 34,34 0 1,1 54,88 A 34,34 0 1,1 54,20 Z">
+    <!-- Liquid Glass Orb Background (Bulletproof Cubic Beziers instead of Arcs) -->
+    <path android:pathData="M 54,20 C 72.77,20 88,35.23 88,54 C 88,72.77 72.77,88 54,88 C 35.23,88 20,72.77 20,54 C 20,35.23 35.23,20 54,20 Z">
         <aapt:attr name="android:fillColor">
             <gradient android:startX="54" android:startY="20" android:endX="54" android:endY="88" android:type="linear">
                 <item android:offset="0" android:color="#40D946EF"/>
