@@ -5,17 +5,20 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.media.AudioManager
+import android.os.Build
 import io.github.zyrouge.symphony.Symphony
 
 class RadioNativeReceiver(private val symphony: Symphony) : BroadcastReceiver() {
     fun start() {
-        symphony.applicationContext.registerReceiver(
-            this,
-            IntentFilter().apply {
-                addAction(AudioManager.ACTION_AUDIO_BECOMING_NOISY)
-                addAction(Intent.ACTION_HEADSET_PLUG)
-            }
-        )
+        val filter = IntentFilter().apply {
+            addAction(AudioManager.ACTION_AUDIO_BECOMING_NOISY)
+            addAction(Intent.ACTION_HEADSET_PLUG)
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            symphony.applicationContext.registerReceiver(this, filter, Context.RECEIVER_EXPORTED)
+        } else {
+            symphony.applicationContext.registerReceiver(this, filter)
+        }
     }
 
     fun destroy() {
