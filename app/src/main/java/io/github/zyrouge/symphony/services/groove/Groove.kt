@@ -37,7 +37,6 @@ class Groove(private val symphony: Symphony) : Symphony.Hooks {
     val genre = GenreRepository(symphony)
     val playlist = PlaylistRepository(symphony)
 
-    // Overture: Renamed to performFetch to avoid Conflicting Overloads with the public fetch()
     private suspend fun performFetch(options: FetchOptions) {
         val cachedSongsCount = loadCachedLibrary()
         
@@ -59,7 +58,11 @@ class Groove(private val symphony: Symphony) : Symphony.Hooks {
                 symphony.database.songCache.entriesPathMapped().values
             }
             if (cachedSongs.isNotEmpty()) {
-                withContext(Dispatchers.Main) {
+                // OVERTURE FIX: Moved from Dispatchers.Main to Dispatchers.Default
+                // Processing thousands of songs on the Main Thread causes a massive CPU lockup,
+                // permanently freezing the Splash Screen. StateFlows are thread-safe, so this
+                // can safely run in the background.
+                withContext(Dispatchers.Default) {
                     cachedSongs.forEach { song ->
                         this@Groove.song.onSong(song)
                         this@Groove.album.onSong(song)
