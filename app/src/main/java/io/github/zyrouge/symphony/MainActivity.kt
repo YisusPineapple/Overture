@@ -5,7 +5,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import androidx.compose.runtime.LaunchedEffect
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import io.github.zyrouge.symphony.ui.view.BaseView
 import io.github.zyrouge.symphony.utils.Logger
@@ -16,11 +15,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val ignition: ActivityIgnition by viewModels()
+        // Overture: Removed setKeepOnScreenCondition deadlock.
+        // The splash screen will now dismiss naturally as soon as the first frame is drawn.
         if (savedInstanceState == null) {
-            installSplashScreen().apply {
-                setKeepOnScreenCondition { !ignition.ready.value }
-            }
+            installSplashScreen()
         }
 
         Thread.setDefaultUncaughtExceptionHandler { _, err ->
@@ -37,9 +35,6 @@ class MainActivity : ComponentActivity() {
 
         enableEdgeToEdge()
         setContent {
-            LaunchedEffect(Unit) {
-                ignition.emitReady()
-            }
             BaseView(symphony = symphony, activity = this)
         }
     }
