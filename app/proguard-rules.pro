@@ -1,2 +1,6 @@
 -keepattributes LineNumberTable,SourceFile
 -renamesourcefileattribute SourceFile
+-keep class kotlinx.coroutines.** { *; }
+-keepclassmembers class kotlinx.coroutines.** { *; }
+-keep class androidx.lifecycle.** { *; }
+-keepclassmembers class androidx.lifecycle.** { *; }
