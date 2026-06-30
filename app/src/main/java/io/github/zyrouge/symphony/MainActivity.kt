@@ -2,6 +2,7 @@ package io.github.zyrouge.symphony
 
 import android.os.Bundle
 import android.os.Build
+import android.os.Looper
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -19,7 +20,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val ignition: ActivityIgnition by viewModels()
-        
+        startFreezeWatchdog(ignition)
+
         // CRITICAL FIX: installSplashScreen() MUST be called BEFORE super.onCreate()
         // Otherwise, the AndroidX library fails to attach the dismissal listener on 
         // OEM skins like MIUI/HyperOS, causing the app to freeze on the logo infinitely.
@@ -90,5 +92,30 @@ class MainActivity : ComponentActivity() {
         gSymphony?.closeApp = {
             finish()
         }
+    }
+
+    // WATCHDOG: detects a frozen startup even when NO exception is thrown
+    // (e.g. a real deadlock / blocking I/O call on the main thread). Runs on a
+    // separate thread so it never touches the main thread itself; it only
+    // observes it from the outside and dumps its exact stack trace to a file.
+    private fun startFreezeWatchdog(ignition: ActivityIgnition) {
+        Thread {
+            Thread.sleep(8000) // 8s margin, more than enough for a normal cold start
+            if (!ignition.ready.value) {
+                val mainThread = Looper.getMainLooper().thread
+                val trace = mainThread.stackTrace.joinToString("\n") { "    at $it" }
+                val dump = buildString {
+                    append("WATCHDOG: ignition.ready seguía en FALSE tras 8s\n\n")
+                    append("Dispositivo: ${Build.MANUFACTURER} ${Build.MODEL} (API ${Build.VERSION.SDK_INT})\n\n")
+                    append("Estado del Main Thread en ese instante:\n")
+                    append(trace)
+                }
+                try {
+                    File(getExternalFilesDir(null), "overture_watchdog_log.txt").writeText(dump)
+                } catch (e: Exception) {
+                    Logger.error("Watchdog", "failed to write watchdog file", e)
+                }
+            }
+        }.start()
     }
 }
